@@ -1,8 +1,9 @@
 # Example L1Trigger Scouting Analyzer
 
-This repo contains a simple example of an EDAnalyzer used to analyze L1T Scouting data collected during 2023.
-It will produce a ROOT file containing 3 histograms:
-1. The BX occupancy in the orbit
+## Demo Analyzer
+Simple example of an `EDAnalyzer` used to analyze L1T Scouting data collected during 2023.
+The `DemoAnalyzer` processes BX containing at least a muon and produces a ROOT file containing 3 histograms:
+1. The BX occupancy of muons in the orbit
 2. Pt distribution of the muons (example of how to manipulate objects)
 3. The BX occupancy such that at least a muon is present and there are no jets in the previous BX (example of how to use objects from a different BX)
 

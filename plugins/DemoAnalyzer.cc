@@ -15,12 +15,8 @@
 // root include files
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
-#include "TH1.h"
 #include "TH1D.h"
-#include "TH2F.h"
-#include "TTree.h"
 #include "TFile.h"
-#include "TBranch.h"
 #include "TDirectory.h"
 
 // L1 scouting 
@@ -36,7 +32,6 @@
 #include "DataFormats/L1Trigger/interface/EGamma.h"
 #include "DataFormats/L1Trigger/interface/Tau.h"
 #include "DataFormats/L1Trigger/interface/EtSum.h"
-
 
 #include <memory>
 #include <utility>
@@ -74,9 +69,6 @@ private:
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::Tau>> tausTokenData_;
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::BxSums>> bxSumsTokenData_;
 
-  // Map for input tags
-  std::map<std::string, edm::InputTag> m_inputTags;
-
   // the root file service to handle the output file
   edm::Service<TFileService> fs;
 
@@ -91,22 +83,14 @@ private:
   std::map<std::string, TH1D*> m_1dhist_;
  };
 
-DemoAnalyzer::DemoAnalyzer(const edm::ParameterSet& iPSet){
+DemoAnalyzer::DemoAnalyzer(const edm::ParameterSet& iPSet)
+  : muonsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("muonsTag"))),
+    jetsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("jetsTag"))),
+    eGammasTokenData_(consumes(iPSet.getParameter<edm::InputTag>("eGammasTag"))),
+    tausTokenData_(consumes(iPSet.getParameter<edm::InputTag>("tausTag"))),
+    bxSumsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("bxSumsTag")))
+  {
   
-  // get the input tags
-  m_inputTags["muonsTag_"] = iPSet.getParameter<edm::InputTag>("muonsTag");
-  m_inputTags["jetsTag_"] = iPSet.getParameter<edm::InputTag>("jetsTag");
-  m_inputTags["eGammasTag_"] = iPSet.getParameter<edm::InputTag>("eGammasTag");
-  m_inputTags["tausTag_"] = iPSet.getParameter<edm::InputTag>("tausTag");
-  m_inputTags["bxSumsTag_"] = iPSet.getParameter<edm::InputTag>("bxSumsTag");
-
-  // based on the data type, get tokens
-  muonsTokenData_ = consumes<OrbitCollection<l1ScoutingRun3::Muon>>(m_inputTags["muonsTag_"]);
-  jetsTokenData_ = consumes<OrbitCollection<l1ScoutingRun3::Jet>>(m_inputTags["jetsTag_"]);
-  eGammasTokenData_ = consumes<OrbitCollection<l1ScoutingRun3::EGamma>>(m_inputTags["eGammasTag_"]);
-  tausTokenData_ = consumes<OrbitCollection<l1ScoutingRun3::Tau>>(m_inputTags["tausTag_"]);
-  bxSumsTokenData_ = consumes<OrbitCollection<l1ScoutingRun3::BxSums>>(m_inputTags["bxSumsTag_"]);
-
   // init internal containers for l1 objects
   l1muons_.reserve(8);
   l1jets_.reserve(12);
