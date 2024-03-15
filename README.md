@@ -1,15 +1,16 @@
 # Example L1Trigger Scouting Analyzer
 
 ## Demo Analyzer
-Simple example of an `EDAnalyzer` used to analyze L1T Scouting data collected during 2023.
+Simple example of an `EDAnalyzer` used to analyze L1T Scouting data.
 The `DemoAnalyzer` processes BX containing at least a muon and produces a ROOT file containing 4 histograms:
 1. The BX occupancy of muons in the orbit
 2. Pt distribution of the muons
 3. Jet multiplicity for BX where at least a muon is present
 4. The BX occupancy such that at least a muon is present and there are no jets in the previous BX (example of how to use objects from a different BX)
 
-## 2023 L1 Scouting data
-Data available in DAS, more info in [this](https://indico.cern.ch/event/1381539/contributions/5806977/attachments/2799342/4883215/L1scoutingdataavailability.pdf) slide.
+## L1 Scouting data
+Data collected during 2023 available in DAS, more info in [this](https://indico.cern.ch/event/1381539/contributions/5806977/attachments/2799342/4883215/L1scoutingdataavailability.pdf) slide.
+A new data tier `L1SCOUT` will to be used for 2024 data.
 
 ```
 file dataset=/L1ScoutUGMTCALO/Run2023C-v1/RAW run=368636

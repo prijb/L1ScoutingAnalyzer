@@ -191,9 +191,13 @@ void DemoAnalyzer::processDataBx(
 
     // fill histograms
     m_1dhist_["MuonBxOcc"]->Fill(bx);
+
     for (const auto& muon: l1muons_){
       m_1dhist_["MuonPt"]->Fill(muon.pt());
     }
+
+    // collections are sorted based on the object Pt. For exampel, the leading muon Pt
+    // can be obtained with l1muons_[0].pt()
     
     // number of jets in bx
     m_1dhist_["numJetsBx_wMuon"]->Fill(jets.size());
