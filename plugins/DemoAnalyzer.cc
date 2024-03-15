@@ -105,6 +105,7 @@ DemoAnalyzer::DemoAnalyzer(const edm::ParameterSet& iPSet)
   m_1dhist_["MuonBxOcc"] = histoSubDir.make<TH1D>("MuonBxOcc", "BX in orbit with at least one muon", 3566, -0.5, 3565.5);
   m_1dhist_["Muon_JetVeto_BxOcc"] = histoSubDir.make<TH1D>("Muon_JetVeto_BxOcc", "BX in orbit with at least one muon and no jet in BX-1", 3566, -0.5, 3565.5);
   m_1dhist_["MuonPt"] = histoSubDir.make<TH1D>("MuonPt", "MuonPt", 512, 0, 256);
+  m_1dhist_["numJetsBx_wMuon"] = histoSubDir.make<TH1D>("numJetsBx_wMuon", "Jet multiplicity in BX with >1Muon", 13, -0.5, 12.5);
 
 }
 
@@ -194,6 +195,9 @@ void DemoAnalyzer::processDataBx(
       m_1dhist_["MuonPt"]->Fill(muon.pt());
     }
     
+    // number of jets in bx
+    m_1dhist_["numJetsBx_wMuon"]->Fill(jets.size());
+
     // require no jets in the previous BX
     // check that we are not in the first BX. There could be halo muons from non colliding
     // bunches / cosmics.

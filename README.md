@@ -2,13 +2,15 @@
 
 ## Demo Analyzer
 Simple example of an `EDAnalyzer` used to analyze L1T Scouting data collected during 2023.
-The `DemoAnalyzer` processes BX containing at least a muon and produces a ROOT file containing 3 histograms:
+The `DemoAnalyzer` processes BX containing at least a muon and produces a ROOT file containing 4 histograms:
 1. The BX occupancy of muons in the orbit
-2. Pt distribution of the muons (example of how to manipulate objects)
-3. The BX occupancy such that at least a muon is present and there are no jets in the previous BX (example of how to use objects from a different BX)
+2. Pt distribution of the muons
+3. Jet multiplicity for BX where at least a muon is present
+4. The BX occupancy such that at least a muon is present and there are no jets in the previous BX (example of how to use objects from a different BX)
 
 ## 2023 L1 Scouting data
-Data available in DAS, more info in [this](https://mattermost.web.cern.ch/cms-l1-scouting/channels/town-square) slide.
+Data available in DAS, more info in [this](https://indico.cern.ch/event/1381539/contributions/5806977/attachments/2799342/4883215/L1scoutingdataavailability.pdf) slide.
+
 ```
 file dataset=/L1ScoutUGMTCALO/Run2023C-v1/RAW run=368636
 ```
@@ -26,6 +28,24 @@ OrbitCollection<l1ScoutingRun3::Tau>    "CaloUnpacker"     ""        "SCPU"
 ```
 
 Each event contains data from one orbit, i.e. a collection of BX, and are stored in an [OrbitCollection](https://github.com/cms-sw/cmssw/blob/master/DataFormats/L1Scouting/interface/OrbitCollection.h).
+
+L1 Scouting objects are stored as integers hw quantities. The physical values can be obtained using a set utilities functions defined [here](https://github.com/cms-sw/cmssw/blob/master/L1TriggerScouting/Utilities/interface/conversion.h).
+For example, hw quantities of scouting muons can be coverted using
+```
+l1ScoutingRun3::ugmt::fPt(l1ScMuon.hwPt());
+```
+and, in a similar way for calo objects
+```
+l1ScoutingRun3::demux::fEt(l1ScJet.hwEt());
+```
+
+If all quantities are needed, converting the L1Scouting object to an L1 trigger object may be more convenient (functions available [here](https://github.com/cms-sw/cmssw/blob/master/L1TriggerScouting/Utilities/interface/convertToL1TFormat.h))
+```
+l1t::Muon l1muon = getL1TMuon(scMuon);
+l1t::EGamma l1egamma = getL1TEGamma(scEGamma);
+```
+
+Members of `l1t::Jet`, `l1t::EGamma`, `l1t::EtSum`, `l1t::Tau` and `l1t::Muon` objects can be found [here](link).
 
 ## Instructions for the demo
 
