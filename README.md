@@ -45,7 +45,7 @@ l1t::Muon l1muon = getL1TMuon(scMuon);
 l1t::EGamma l1egamma = getL1TEGamma(scEGamma);
 ```
 
-Members of `l1t::Jet`, `l1t::EGamma`, `l1t::EtSum`, `l1t::Tau` and `l1t::Muon` objects can be found [here](link).
+Members of `l1t::Jet`, `l1t::EGamma`, `l1t::EtSum`, `l1t::Tau` and `l1t::Muon` objects can be found [here](https://github.com/cms-sw/cmssw/tree/master/DataFormats/L1Trigger/interface).
 
 ## Instructions for the demo
 
