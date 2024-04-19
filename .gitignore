@@ -1,2 +1,8 @@
 # Pycache
 __pycache__/
+
+# CRAB submission scripts
+crab_*.py
+
+# CRAB work area
+crab_*/
