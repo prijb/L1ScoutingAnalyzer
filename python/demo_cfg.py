@@ -31,7 +31,8 @@ process.maxEvents = cms.untracked.PSet(
 )
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.MessageLogger.cerr.threshold = "WARNING"
+#process.MessageLogger.cerr.threshold = "WARNING"
+process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 process.Timing = cms.Service("Timing",
   summaryOnly = cms.untracked.bool(True),

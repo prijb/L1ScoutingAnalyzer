@@ -8,6 +8,8 @@ The `DemoAnalyzer` processes BX containing at least a muon and produces a ROOT f
 3. Jet multiplicity for BX where at least a muon is present
 4. The BX occupancy such that at least a muon is present and there are no jets in the previous BX (example of how to use objects from a different BX)
 
+In addition, the ROOT file contains an NTuple that stores the Muon and Jet collections (pt, eta, phi etc.) per bunch crossing. Bunch crossings are chosen based on Muon/Jet multiplicity and can be specified in the `EDAnalyzer`
+
 ## L1 Scouting data
 Data collected during 2023 available in DAS, more info in [this](https://indico.cern.ch/event/1381539/contributions/5806977/attachments/2799342/4883215/L1scoutingdataavailability.pdf) slide.
 A new data tier `L1SCOUT` will to be used for 2024 data.
@@ -60,7 +62,7 @@ cmsenv
 mkdir Demo
 cd Demo
 
-git clone https://github.com/Mmiglio/L1ScoutingAnalyzer DemoAnalyzer
+git clone https://github.com/prijb/L1ScoutingAnalyzer.git DemoAnalyzer
 
 cd DemoAnalyzer
 scram b

@@ -17,6 +17,7 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "TH1D.h"
 #include "TFile.h"
+#include "TTree.h"
 #include "TDirectory.h"
 
 // L1 scouting 
@@ -54,6 +55,7 @@ private:
   void endJob() override;
 
   void processDataBx(
+    unsigned orbitNum,
     unsigned bx,
     const edm::Handle<MuonOrbitCollection>& muonsCollection,
     const edm::Handle<JetOrbitCollection>& jetsCollection,
@@ -69,9 +71,6 @@ private:
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::Tau>> tausTokenData_;
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::BxSums>> bxSumsTokenData_;
 
-  // the root file service to handle the output file
-  edm::Service<TFileService> fs;
-
   // l1t standard data format
   std::vector<l1t::Jet> l1jets_;
   std::vector<l1t::EGamma> l1egs_;
@@ -81,6 +80,39 @@ private:
 
   // map containing TH1D histograms
   std::map<std::string, TH1D*> m_1dhist_;
+
+  //Tree that contains info per bunch crossing
+  TTree* tree;
+
+  Int_t orbit;
+  Int_t bxid;
+
+  //Jets
+  Int_t nJet;
+  vector<Float16_t> Jet_pt;
+  vector<Float16_t> Jet_eta;
+  vector<Float16_t> Jet_phi;
+  vector<Float16_t> Jet_e;
+  vector<Int_t> Jet_qual;
+  vector<Int_t> Jet_towerIEta;
+  vector<Int_t> Jet_towerIPhi;
+  vector<Int_t> Jet_rawEt;
+  vector<Int_t> Jet_seedEt;
+  vector<Int_t> Jet_puEt;
+  //vector<Int_t[4]> Jet_puDonutEt;
+
+  //Muons
+  Int_t nMuon;
+  vector<Float16_t> Muon_pt;
+  vector<Float16_t> Muon_eta;
+  vector<Float16_t> Muon_phi;
+  vector<Float16_t> Muon_e;
+  vector<Int_t> Muon_qual;
+  vector<Int_t> Muon_hwCharge;
+  vector<Float16_t> Muon_etaAtVtx;
+  vector<Float16_t> Muon_phiAtVtx;
+  vector<Int_t> Muon_hwDXY;
+
  };
 
 DemoAnalyzer::DemoAnalyzer(const edm::ParameterSet& iPSet)
@@ -90,6 +122,37 @@ DemoAnalyzer::DemoAnalyzer(const edm::ParameterSet& iPSet)
     tausTokenData_(consumes(iPSet.getParameter<edm::InputTag>("tausTag"))),
     bxSumsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("bxSumsTag")))
   {
+
+  // the root file service to handle the output file
+  edm::Service<TFileService> fs;
+
+  // Create the TTree
+  tree = fs->make<TTree>("Events", "Events_bx");
+
+  tree->Branch("orbit", &orbit, "orbit/I");
+  tree->Branch("bx", &bxid, "bx/I");
+  tree->Branch("nJet", &nJet, "nJet/I");
+  tree->Branch("Jet_pt", &Jet_pt);
+  tree->Branch("Jet_eta", &Jet_eta);
+  tree->Branch("Jet_phi", &Jet_phi);
+  tree->Branch("Jet_e", &Jet_e);
+  tree->Branch("Jet_qual", &Jet_qual);
+  tree->Branch("Jet_towerIEta", &Jet_towerIEta);
+  tree->Branch("Jet_towerIPhi", &Jet_towerIPhi);
+  tree->Branch("Jet_rawEt", &Jet_rawEt);
+  tree->Branch("Jet_seedEt", &Jet_seedEt);
+  tree->Branch("Jet_puEt", &Jet_puEt);
+  //tree->Branch("Jet_puDonutEt", &Jet_puDonutEt);
+  tree->Branch("nMuon", &nMuon, "nMuon/I");
+  tree->Branch("Muon_pt", &Muon_pt);
+  tree->Branch("Muon_eta", &Muon_eta);
+  tree->Branch("Muon_phi", &Muon_phi);
+  tree->Branch("Muon_e", &Muon_e);
+  tree->Branch("Muon_qual", &Muon_qual);
+  tree->Branch("Muon_hwCharge", &Muon_hwCharge);
+  tree->Branch("Muon_etaAtVtx", &Muon_etaAtVtx);
+  tree->Branch("Muon_phiAtVtx", &Muon_phiAtVtx);
+  tree->Branch("Muon_hwDXY", &Muon_hwDXY);
   
   // init internal containers for l1 objects
   l1muons_.reserve(8);
@@ -123,12 +186,14 @@ void DemoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&) {
   iEvent.getByToken(bxSumsTokenData_, bxSumsCollection); 
 
   // get orbit number orbit
-  // unsigned orbitNum = iEvent.id().event();
+  unsigned orbitNum = iEvent.id().event();
 
   // process all BX in orbit containing at least a Muon
   // getFilledBxs() returns the list of filled BX in the muon orbit collection
+  /*
   for (const unsigned& bx : muonsCollection->getFilledBxs()) {
     processDataBx(
+        orbitNum,
         bx,
         muonsCollection,
         jetsCollection,
@@ -137,10 +202,38 @@ void DemoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&) {
         bxSumsCollection
     ); 
   }
+  */
+
+  //process all BX in orbit containing at least a Jet
+  for (const unsigned& bx : jetsCollection->getFilledBxs()) {
+    processDataBx(
+        orbitNum,
+        bx,
+        muonsCollection,
+        jetsCollection,
+        eGammasCollection,
+        tausCollection,
+        bxSumsCollection
+    ); 
+  }
+
+  //process all BX regardless of object count
+  /*
+  processDataBx(
+        orbitNum,
+        bx,
+        muonsCollection,
+        jetsCollection,
+        eGammasCollection,
+        tausCollection,
+        bxSumsCollection
+    );
+  */
   
  }
 
 void DemoAnalyzer::processDataBx(
+    unsigned orbitNum,
     unsigned bx,
     const edm::Handle<MuonOrbitCollection>& muonsCollection,
     const edm::Handle<JetOrbitCollection>& jetsCollection,
@@ -148,7 +241,10 @@ void DemoAnalyzer::processDataBx(
     const edm::Handle<TauOrbitCollection>& tausCollection,
     const edm::Handle<BxSumsOrbitCollection>& bxSumsCollection
   ) {
-    
+
+    orbit = orbitNum;
+    bxid = bx;
+
     // get iterator for the current BX
     const auto& jets = jetsCollection->bxIterator(bx);
     const auto& eGammas = eGammasCollection->bxIterator(bx);
@@ -167,11 +263,65 @@ void DemoAnalyzer::processDataBx(
     l1sums_.clear();
     l1muons_.clear();
 
+    Muon_pt.clear();
+    Muon_eta.clear();
+    Muon_phi.clear();
+    Muon_e.clear();
+    Muon_qual.clear();
+    Muon_hwCharge.clear();
+    Muon_etaAtVtx.clear();
+    Muon_phiAtVtx.clear();
+    Muon_hwDXY.clear();
+
+    Jet_pt.clear();
+    Jet_eta.clear();
+    Jet_phi.clear();
+    Jet_e.clear();
+    Jet_qual.clear();
+    Jet_towerIEta.clear();
+    Jet_towerIPhi.clear();
+    Jet_rawEt.clear();
+    Jet_seedEt.clear();
+    Jet_puEt.clear();
+    //Jet_puDonutEt.clear();
+
+
+    int muon_counter = 0;
+    nMuon = muons.size();
+
     for (const auto& muon : muons) {
+      l1t::Muon l1muon = getL1TMuon(muon);
       l1muons_.emplace_back(getL1TMuon(muon));
+      Muon_pt.push_back(l1muon.pt());
+      Muon_eta.push_back(l1muon.eta());
+      Muon_phi.push_back(l1muon.phi());
+      Muon_e.push_back(l1muon.energy());
+      Muon_qual.push_back(l1muon.hwQual());
+      Muon_hwCharge.push_back(l1muon.hwCharge());
+      Muon_etaAtVtx.push_back(l1muon.etaAtVtx());
+      Muon_phiAtVtx.push_back(l1muon.phiAtVtx());
+      Muon_hwDXY.push_back(l1muon.hwDXY());
+      muon_counter++;
     }
+
+    int jet_counter = 0;
+    nJet = jets.size();
+
     for (const auto& jet : jets) {
+      l1t::Jet l1jet = getL1TJet(jet);
       l1jets_.emplace_back(getL1TJet(jet));
+      Jet_pt.push_back(l1jet.pt());
+      Jet_eta.push_back(l1jet.eta());
+      Jet_phi.push_back(l1jet.phi());
+      Jet_e.push_back(l1jet.energy());
+      Jet_qual.push_back(l1jet.hwQual());
+      Jet_towerIEta.push_back(l1jet.towerIEta());
+      Jet_towerIPhi.push_back(l1jet.towerIPhi());
+      Jet_rawEt.push_back(l1jet.rawEt());
+      Jet_seedEt.push_back(l1jet.seedEt());
+      Jet_puEt.push_back(l1jet.puEt());
+      //Jet_puDonutEt.push_back(l1jet.puDonutEt());
+      jet_counter++;
     }
     for (const auto& egamma : eGammas) {
       l1egs_.emplace_back(getL1TEGamma(egamma));
@@ -188,6 +338,9 @@ void DemoAnalyzer::processDataBx(
       l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kMissingHt));
       l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kTowerCount));
     }
+
+    // fill the tree
+    tree->Fill();
 
     // fill histograms
     m_1dhist_["MuonBxOcc"]->Fill(bx);
