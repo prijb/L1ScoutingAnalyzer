@@ -81,7 +81,7 @@ private:
   // map containing TH1D histograms
   std::map<std::string, TH1D*> m_1dhist_;
 
-  //Tree that contains info per bunch crossing
+  // Tree that contains info per bunch crossing
   TTree* tree;
 
   Int_t orbit;
@@ -233,141 +233,141 @@ void DemoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&) {
  }
 
 void DemoAnalyzer::processDataBx(
-    unsigned orbitNum,
-    unsigned bx,
-    const edm::Handle<MuonOrbitCollection>& muonsCollection,
-    const edm::Handle<JetOrbitCollection>& jetsCollection,
-    const edm::Handle<EGammaOrbitCollection>& eGammasCollection,
-    const edm::Handle<TauOrbitCollection>& tausCollection,
-    const edm::Handle<BxSumsOrbitCollection>& bxSumsCollection
-  ) {
+  unsigned orbitNum,
+  unsigned bx,
+  const edm::Handle<MuonOrbitCollection>& muonsCollection,
+  const edm::Handle<JetOrbitCollection>& jetsCollection,
+  const edm::Handle<EGammaOrbitCollection>& eGammasCollection,
+  const edm::Handle<TauOrbitCollection>& tausCollection,
+  const edm::Handle<BxSumsOrbitCollection>& bxSumsCollection
+  )
+  {
 
-    orbit = orbitNum;
-    bxid = bx;
+  orbit = orbitNum;
+  bxid = bx;
 
-    // get iterator for the current BX
-    const auto& jets = jetsCollection->bxIterator(bx);
-    const auto& eGammas = eGammasCollection->bxIterator(bx);
-    const auto& taus = tausCollection->bxIterator(bx);
-    const auto& bxSums = bxSumsCollection->bxIterator(bx);
-    const auto& muons = muonsCollection->bxIterator(bx);
+  // get iterator for the current BX
+  const auto& jets = jetsCollection->bxIterator(bx);
+  const auto& eGammas = eGammasCollection->bxIterator(bx);
+  const auto& taus = tausCollection->bxIterator(bx);
+  const auto& bxSums = bxSumsCollection->bxIterator(bx);
+  const auto& muons = muonsCollection->bxIterator(bx);
 
-    // convert scouting objects to l1t::objects for semplicity
-    // Note: Scouting objects are stored in hw quantities, if only a subset
-    // of the features is needed, the function in L1TriggerScouting/Utilities/interface/conversion.h
-    // can be used to get physical quantities.
-    // for example, the momentum of a muon can be obtained with ugmt::fPt(hwPt);
-    l1jets_.clear();
-    l1egs_.clear();
-    l1taus_.clear();
-    l1sums_.clear();
-    l1muons_.clear();
+  // convert scouting objects to l1t::objects for semplicity
+  // Note: Scouting objects are stored in hw quantities, if only a subset
+  // of the features is needed, the function in L1TriggerScouting/Utilities/interface/conversion.h
+  // can be used to get physical quantities.
+  // for example, the momentum of a muon can be obtained with ugmt::fPt(hwPt);
+  l1jets_.clear();
+  l1egs_.clear();
+  l1taus_.clear();
+  l1sums_.clear();
+  l1muons_.clear();
 
-    Muon_pt.clear();
-    Muon_eta.clear();
-    Muon_phi.clear();
-    Muon_e.clear();
-    Muon_qual.clear();
-    Muon_hwCharge.clear();
-    Muon_etaAtVtx.clear();
-    Muon_phiAtVtx.clear();
-    Muon_hwDXY.clear();
+  Muon_pt.clear();
+  Muon_eta.clear();
+  Muon_phi.clear();
+  Muon_e.clear();
+  Muon_qual.clear();
+  Muon_hwCharge.clear();
+  Muon_etaAtVtx.clear();
+  Muon_phiAtVtx.clear();
+  Muon_hwDXY.clear();
 
-    Jet_pt.clear();
-    Jet_eta.clear();
-    Jet_phi.clear();
-    Jet_e.clear();
-    Jet_qual.clear();
-    Jet_towerIEta.clear();
-    Jet_towerIPhi.clear();
-    Jet_rawEt.clear();
-    Jet_seedEt.clear();
-    Jet_puEt.clear();
-    //Jet_puDonutEt.clear();
+  Jet_pt.clear();
+  Jet_eta.clear();
+  Jet_phi.clear();
+  Jet_e.clear();
+  Jet_qual.clear();
+  Jet_towerIEta.clear();
+  Jet_towerIPhi.clear();
+  Jet_rawEt.clear();
+  Jet_seedEt.clear();
+  Jet_puEt.clear();
+  //Jet_puDonutEt.clear();
 
 
-    int muon_counter = 0;
-    nMuon = muons.size();
+  int muon_counter = 0;
+  nMuon = muons.size();
 
-    for (const auto& muon : muons) {
-      l1t::Muon l1muon = getL1TMuon(muon);
-      l1muons_.emplace_back(getL1TMuon(muon));
-      Muon_pt.push_back(l1muon.pt());
-      Muon_eta.push_back(l1muon.eta());
-      Muon_phi.push_back(l1muon.phi());
-      Muon_e.push_back(l1muon.energy());
-      Muon_qual.push_back(l1muon.hwQual());
-      Muon_hwCharge.push_back(l1muon.hwCharge());
-      Muon_etaAtVtx.push_back(l1muon.etaAtVtx());
-      Muon_phiAtVtx.push_back(l1muon.phiAtVtx());
-      Muon_hwDXY.push_back(l1muon.hwDXY());
-      muon_counter++;
+  for (const auto& muon : muons) {
+    l1t::Muon l1muon = getL1TMuon(muon);
+    l1muons_.emplace_back(getL1TMuon(muon));
+    Muon_pt.push_back(l1muon.pt());
+    Muon_eta.push_back(l1muon.eta());
+    Muon_phi.push_back(l1muon.phi());
+    Muon_e.push_back(l1muon.energy());
+    Muon_qual.push_back(l1muon.hwQual());
+    Muon_hwCharge.push_back(l1muon.hwCharge());
+    Muon_etaAtVtx.push_back(l1muon.etaAtVtx());
+    Muon_phiAtVtx.push_back(l1muon.phiAtVtx());
+    Muon_hwDXY.push_back(l1muon.hwDXY());
+    muon_counter++;
+  }
+
+  int jet_counter = 0;
+  nJet = jets.size();
+
+  for (const auto& jet : jets) {
+    l1t::Jet l1jet = getL1TJet(jet);
+    l1jets_.emplace_back(getL1TJet(jet));
+    Jet_pt.push_back(l1jet.pt());
+    Jet_eta.push_back(l1jet.eta());
+    Jet_phi.push_back(l1jet.phi());
+    Jet_e.push_back(l1jet.energy());
+    Jet_qual.push_back(l1jet.hwQual());
+    Jet_towerIEta.push_back(l1jet.towerIEta());
+    Jet_towerIPhi.push_back(l1jet.towerIPhi());
+    Jet_rawEt.push_back(l1jet.rawEt());
+    Jet_seedEt.push_back(l1jet.seedEt());
+    Jet_puEt.push_back(l1jet.puEt());
+    //Jet_puDonutEt.push_back(l1jet.puDonutEt());
+    jet_counter++;
+  }
+  for (const auto& egamma : eGammas) {
+    l1egs_.emplace_back(getL1TEGamma(egamma));
+  }
+  for (const auto& tau : taus) {
+    l1taus_.emplace_back(getL1TTau(tau));
+  }    
+
+  // store some of the sums
+  if (bxSums.size()>0){
+    l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kTotalEt));
+    l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kTotalHt));
+    l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kMissingEt));
+    l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kMissingHt));
+    l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kTowerCount));
+  }
+
+  // fill the tree
+  tree->Fill();
+
+  // fill histograms
+  m_1dhist_["MuonBxOcc"]->Fill(bx);
+
+  for (const auto& muon: l1muons_){
+    m_1dhist_["MuonPt"]->Fill(muon.pt());
+  }
+
+  // collections are sorted based on the object Pt. For exampel, the leading muon Pt
+  // can be obtained with l1muons_[0].pt()
+  
+  // number of jets in bx
+  m_1dhist_["numJetsBx_wMuon"]->Fill(jets.size());
+
+  // require no jets in the previous BX
+  // check that we are not in the first BX. There could be halo muons from non colliding
+  // bunches / cosmics.
+  if (bx>1){
+    // we can access the jets (if any) with jetsCollection->bxIterator(bx-1);
+    // for this example, we will just check how many of them there are in bx-1
+    if (jetsCollection->getBxSize(bx-1)>0){
+      m_1dhist_["Muon_JetVeto_BxOcc"]->Fill(bx); 
+
+      // fill more hists, do something else....
     }
-
-    int jet_counter = 0;
-    nJet = jets.size();
-
-    for (const auto& jet : jets) {
-      l1t::Jet l1jet = getL1TJet(jet);
-      l1jets_.emplace_back(getL1TJet(jet));
-      Jet_pt.push_back(l1jet.pt());
-      Jet_eta.push_back(l1jet.eta());
-      Jet_phi.push_back(l1jet.phi());
-      Jet_e.push_back(l1jet.energy());
-      Jet_qual.push_back(l1jet.hwQual());
-      Jet_towerIEta.push_back(l1jet.towerIEta());
-      Jet_towerIPhi.push_back(l1jet.towerIPhi());
-      Jet_rawEt.push_back(l1jet.rawEt());
-      Jet_seedEt.push_back(l1jet.seedEt());
-      Jet_puEt.push_back(l1jet.puEt());
-      //Jet_puDonutEt.push_back(l1jet.puDonutEt());
-      jet_counter++;
-    }
-    for (const auto& egamma : eGammas) {
-      l1egs_.emplace_back(getL1TEGamma(egamma));
-    }
-    for (const auto& tau : taus) {
-      l1taus_.emplace_back(getL1TTau(tau));
-    }    
-
-    // store some of the sums
-    if (bxSums.size()>0){
-      l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kTotalEt));
-      l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kTotalHt));
-      l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kMissingEt));
-      l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kMissingHt));
-      l1sums_.emplace_back(getL1TEtSum(bxSums[0], l1t::EtSum::EtSumType::kTowerCount));
-    }
-
-    // fill the tree
-    tree->Fill();
-
-    // fill histograms
-    m_1dhist_["MuonBxOcc"]->Fill(bx);
-
-    for (const auto& muon: l1muons_){
-      m_1dhist_["MuonPt"]->Fill(muon.pt());
-    }
-
-    // collections are sorted based on the object Pt. For exampel, the leading muon Pt
-    // can be obtained with l1muons_[0].pt()
-    
-    // number of jets in bx
-    m_1dhist_["numJetsBx_wMuon"]->Fill(jets.size());
-
-    // require no jets in the previous BX
-    // check that we are not in the first BX. There could be halo muons from non colliding
-    // bunches / cosmics.
-    if (bx>1){
-      // we can access the jets (if any) with jetsCollection->bxIterator(bx-1);
-      // for this example, we will just check how many of them there are in bx-1
-      if (jetsCollection->getBxSize(bx-1)>0){
-        m_1dhist_["Muon_JetVeto_BxOcc"]->Fill(bx); 
-
-        // fill more hists, do something else....
-      }
-    }
-
+  }
 }
 
 void DemoAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {

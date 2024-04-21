@@ -22,6 +22,12 @@ options.register ("outFile",
                   VarParsing.VarParsing.varType.string,
                   "Path of the output file")
 
+options.register ("isData",
+                  True,
+                  VarParsing.VarParsing.multiplicity.singleton,
+                  VarParsing.VarParsing.varType.bool,
+                  "Whether input is data or MC")
+
 options.parseArguments()
 
 process = cms.Process( "SCANALYZER" )
@@ -47,13 +53,24 @@ process.source = cms.Source("PoolSource",
   fileNames = cms.untracked.vstring(options.inFile)
 )
 
-process.scAnalyzer = cms.EDAnalyzer("DemoAnalyzer",
-  muonsTag      = cms.InputTag("GmtUnpacker", "", "SCPU"),
-  jetsTag       = cms.InputTag("CaloUnpacker", "", "SCPU"),
-  eGammasTag    = cms.InputTag("CaloUnpacker", "", "SCPU"),
-  tausTag       = cms.InputTag("CaloUnpacker", "", "SCPU"),
-  bxSumsTag     = cms.InputTag("CaloUnpacker", "", "SCPU"),
-)
+# Choice of analyzer depends on whether the file is Data or MC
+if options.isData:
+  process.scAnalyzer = cms.EDAnalyzer("DemoAnalyzer",
+    muonsTag      = cms.InputTag("GmtUnpacker", "", "SCPU"),
+    jetsTag       = cms.InputTag("CaloUnpacker", "", "SCPU"),
+    eGammasTag    = cms.InputTag("CaloUnpacker", "", "SCPU"),
+    tausTag       = cms.InputTag("CaloUnpacker", "", "SCPU"),
+    bxSumsTag     = cms.InputTag("CaloUnpacker", "", "SCPU"),
+  )
+
+else:
+  process.scAnalyzer = cms.EDAnalyzer("DemoAnalyzerMC",
+    muonsTag      = cms.InputTag("gmtStage2Digis", "Muon"),
+    jetsTag       = cms.InputTag("caloStage2Digis", "Jet"),
+    eGammasTag    = cms.InputTag("caloStage2Digis", "EGamma"),
+    tausTag       = cms.InputTag("caloStage2Digis", "Tau"),
+    etSumsTag     = cms.InputTag("caloStage2Digis", "EtSum"),
+  )
 
 process.p = cms.Path(
   process.scAnalyzer
