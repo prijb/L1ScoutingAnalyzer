@@ -11,6 +11,7 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "FWCore/Utilities/interface/StreamID.h"
 #include "FWCore/Utilities/interface/Span.h"
+#include "DataFormats/Math/interface/deltaR.h"
 
 // root include files
 #include "FWCore/ServiceRegistry/interface/Service.h"
@@ -19,6 +20,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TDirectory.h"
+#include "TLorentzVector.h"
 
 // L1 scouting 
 #include "DataFormats/L1Scouting/interface/L1ScoutingMuon.h"
@@ -169,6 +171,11 @@ DemoAnalyzer::DemoAnalyzer(const edm::ParameterSet& iPSet)
   m_1dhist_["Muon_JetVeto_BxOcc"] = histoSubDir.make<TH1D>("Muon_JetVeto_BxOcc", "BX in orbit with at least one muon and no jet in BX-1", 3566, -0.5, 3565.5);
   m_1dhist_["MuonPt"] = histoSubDir.make<TH1D>("MuonPt", "MuonPt", 512, 0, 256);
   m_1dhist_["numJetsBx_wMuon"] = histoSubDir.make<TH1D>("numJetsBx_wMuon", "Jet multiplicity in BX with >1Muon", 13, -0.5, 12.5);
+  
+  //Some additional dimuon and dijet histograms
+  m_1dhist_["DimuonMass"] = histoSubDir.make<TH1D>("DimuonMass", "Opposite charge dimuons", 15000, 0., 150.);
+  m_1dhist_["DijetMass"] = histoSubDir.make<TH1D>("DijetMass", "Dijet mass", 200, 0., 1000.);
+  m_1dhist_["DijetMassSel"] = histoSubDir.make<TH1D>("DijetMassSel", "Dijet mass (mu matched)", 1000, 0., 1000.);
 
 }
 
@@ -190,7 +197,6 @@ void DemoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&) {
 
   // process all BX in orbit containing at least a Muon
   // getFilledBxs() returns the list of filled BX in the muon orbit collection
-  /*
   for (const unsigned& bx : muonsCollection->getFilledBxs()) {
     processDataBx(
         orbitNum,
@@ -202,8 +208,9 @@ void DemoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&) {
         bxSumsCollection
     ); 
   }
-  */
+  
 
+  /*
   //process all BX in orbit containing at least a Jet
   for (const unsigned& bx : jetsCollection->getFilledBxs()) {
     processDataBx(
@@ -216,6 +223,7 @@ void DemoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&) {
         bxSumsCollection
     ); 
   }
+  */
 
   //process all BX regardless of object count
   /*
@@ -303,6 +311,37 @@ void DemoAnalyzer::processDataBx(
     Muon_phiAtVtx.push_back(l1muon.phiAtVtx());
     Muon_hwDXY.push_back(l1muon.hwDXY());
     muon_counter++;
+  }
+
+  if (nMuon==2){
+    math::PtEtaPhiMLorentzVector mu1(Muon_pt[0], Muon_eta[0], Muon_phi[0], 0.1055);
+    math::PtEtaPhiMLorentzVector mu2(Muon_pt[1], Muon_eta[1], Muon_phi[1], 0.1055);
+    if(Muon_hwCharge[0]!=Muon_hwCharge[1]){
+      m_1dhist_["DimuonMass"]->Fill((mu1+mu2).M());
+    }
+
+  }
+
+  if (nJet==2){
+    math::PtEtaPhiMLorentzVector jet1(Jet_pt[0], Jet_eta[0], Jet_phi[0], Jet_e[0]);
+    math::PtEtaPhiMLorentzVector jet2(Jet_pt[1], Jet_eta[1], Jet_phi[1], Jet_e[1]);
+    m_1dhist_["DijetMass"]->Fill((jet1+jet2).M());
+    bool isMuMatched{false};
+
+    //Try matching with muons
+    if (nMuon>1){
+      for (int i=0; i<nMuon; i++){
+        math::PtEtaPhiMLorentzVector mu(Muon_pt[i], Muon_eta[i], Muon_phi[i], 0.1055);
+        if(reco::deltaR(mu, jet1)<0.4 || reco::deltaR(mu, jet2)<0.4){
+          isMuMatched = true;
+          break;
+        }
+      }
+    }
+    //Add dijet mass if muon matched
+    if (isMuMatched){
+      m_1dhist_["DijetMassSel"]->Fill((jet1+jet2).M());
+    }
   }
 
   int jet_counter = 0;

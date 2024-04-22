@@ -6,3 +6,6 @@ crab_*.py
 
 # CRAB work area
 crab_*/
+
+# Output files
+*.root
