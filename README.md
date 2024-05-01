@@ -70,7 +70,7 @@ scram b
 # init proxy
 voms-proxy-init --voms cms
 
-# process 10k orbits
-cmsRun python/demo_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2023C/L1ScoutUGMTCALO/RAW/v1/000/368/636/00000/run368636_ls0400.root outFile=test.root numOrbits=10000
+# process 10k orbits (additional flag for data vs MC)
+cmsRun python/demo_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2023C/L1ScoutUGMTCALO/RAW/v1/000/368/636/00000/run368636_ls0400.root outFile=test.root numOrbits=10000 isData=True
 ```
 

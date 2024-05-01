@@ -65,6 +65,7 @@ if options.isData:
 
 else:
   process.scAnalyzer = cms.EDAnalyzer("DemoAnalyzerMC",
+    genEventInfoTag        = cms.InputTag("generator"),
     muonsTag      = cms.InputTag("gmtStage2Digis", "Muon"),
     jetsTag       = cms.InputTag("caloStage2Digis", "Jet"),
     eGammasTag    = cms.InputTag("caloStage2Digis", "EGamma"),

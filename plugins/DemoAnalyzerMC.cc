@@ -12,6 +12,9 @@
 #include "FWCore/Utilities/interface/StreamID.h"
 #include "FWCore/Utilities/interface/Span.h"
 
+// Gen event info (pt hat)
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+
 // root include files
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
@@ -46,6 +49,7 @@ private:
   void endJob() override;
 
   // Tokens for l1t objects
+  edm::EDGetTokenT<GenEventInfoProduct> genEventInfoToken_;
   edm::EDGetTokenT<l1t::JetBxCollection> jetToken_;
   edm::EDGetTokenT<l1t::EGammaBxCollection> egToken_;
   edm::EDGetTokenT<l1t::EtSumBxCollection> etSumToken_;
@@ -55,6 +59,8 @@ private:
   // Tree that contains info per bunch crossing
   TTree* tree;
 
+  Float_t genPtHat;
+  
   //Jets
   Int_t nJet;
   vector<Float16_t> Jet_pt;
@@ -84,7 +90,8 @@ private:
 };
 
 DemoAnalyzerMC::DemoAnalyzerMC(const edm::ParameterSet& iPset)
-  : jetToken_(consumes<l1t::JetBxCollection>(iPset.getParameter<edm::InputTag>("jetsTag"))),
+  :genEventInfoToken_(consumes<GenEventInfoProduct>(iPset.getParameter<edm::InputTag>("genEventInfoTag"))), 
+  jetToken_(consumes<l1t::JetBxCollection>(iPset.getParameter<edm::InputTag>("jetsTag"))),
   egToken_(consumes<l1t::EGammaBxCollection>(iPset.getParameter<edm::InputTag>("eGammasTag"))),
   etSumToken_(consumes<l1t::EtSumBxCollection>(iPset.getParameter<edm::InputTag>("etSumsTag"))),
   tauToken_(consumes<l1t::TauBxCollection>(iPset.getParameter<edm::InputTag>("tausTag"))),
@@ -96,7 +103,7 @@ DemoAnalyzerMC::DemoAnalyzerMC(const edm::ParameterSet& iPset)
 
   // Create the TTree
   tree = fs->make<TTree>("Events", "Events_bx");
-
+  tree->Branch("genPtHat", &genPtHat, "genPtHat/F");
   tree->Branch("nJet", &nJet, "nJet/I");
   tree->Branch("Jet_pt", &Jet_pt);
   tree->Branch("Jet_eta", &Jet_eta);
@@ -123,12 +130,14 @@ DemoAnalyzerMC::DemoAnalyzerMC(const edm::ParameterSet& iPset)
 }
 
 void DemoAnalyzerMC::analyze(const edm::Event& iEvent, const edm::EventSetup&){
+  edm::Handle<GenEventInfoProduct> genEventInfo;
   edm::Handle<l1t::JetBxCollection> jetsCollection;
   edm::Handle<l1t::EGammaBxCollection> egammasCollection;
   edm::Handle<l1t::EtSumBxCollection> etsumsCollection;
   edm::Handle<l1t::TauBxCollection> tausCollection;
   edm::Handle<l1t::MuonBxCollection> muonsCollection;
 
+  iEvent.getByToken(genEventInfoToken_, genEventInfo);
   iEvent.getByToken(jetToken_, jetsCollection);
   iEvent.getByToken(egToken_, egammasCollection);
   iEvent.getByToken(etSumToken_, etsumsCollection);
@@ -156,6 +165,12 @@ void DemoAnalyzerMC::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   Jet_seedEt.clear();
   Jet_puEt.clear();
   //Jet_puDonutEt.clear();
+
+  //Gen event pT hat
+  genPtHat = 0;
+  if(genEventInfo.isValid()){
+    genPtHat = genEventInfo->binningValues()[0];
+  }
 
   nMuon = 0;
 
