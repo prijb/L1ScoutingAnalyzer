@@ -2,6 +2,7 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/global/EDAnalyzer.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
+//#include "FWCore/Framework/interface/one/implementors.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -69,9 +70,7 @@ private:
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::Tau>> tausTokenData_;
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::BxSums>> bxSumsTokenData_;
 
-  // the root file service to handle the output file
-  edm::Service<TFileService> fs;
-
+  
   // l1t standard data format
   std::vector<l1t::Jet> l1jets_;
   std::vector<l1t::EGamma> l1egs_;
@@ -90,6 +89,9 @@ DemoAnalyzer::DemoAnalyzer(const edm::ParameterSet& iPSet)
     tausTokenData_(consumes(iPSet.getParameter<edm::InputTag>("tausTag"))),
     bxSumsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("bxSumsTag")))
   {
+
+  // test shared resources
+  usesResource(TFileService::kSharedResource);
   
   // init internal containers for l1 objects
   l1muons_.reserve(8);
@@ -99,6 +101,7 @@ DemoAnalyzer::DemoAnalyzer(const edm::ParameterSet& iPSet)
   l1sums_.reserve(12);
   
   // create histogram subdir
+  edm::Service<TFileService> fs;
   TFileDirectory histoSubDir = fs->mkdir("histograms");
 
   // Init histograms
