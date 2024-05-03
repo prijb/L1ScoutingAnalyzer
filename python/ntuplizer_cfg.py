@@ -66,10 +66,10 @@ if options.onlineSelection != "":
 else:
     # process all filled bx, ZB stream
     process.scNtuplizer = cms.EDAnalyzer("ScNtuplizer",
-        muonsTag      = cms.InputTag("l1GmtCaloUnpacker", "Muon"),
+        muonsTag      = cms.InputTag("l1ScGmtUnpacker", "Muon"),
         jetsTag       = cms.InputTag("l1ScCaloUnpacker",  "Jet"),
         eGammasTag    = cms.InputTag("l1ScCaloUnpacker",  "EGamma"),
-        bxSumsTag     = cms.InputTag("l1ScCaloUnpacker",  "BxSums"),
+        bxSumsTag     = cms.InputTag("l1ScCaloUnpacker",  "EtSum"),
         onlineSelection = cms.untracked.bool(False)
     )
 
