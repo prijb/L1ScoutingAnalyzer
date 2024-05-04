@@ -1,4 +1,4 @@
-# Example L1Trigger Scouting Analyzer
+# Example of L1Trigger Scouting Analyzers
 
 ## Demo Analyzer
 Simple example of an `EDAnalyzer` used to analyze L1T Scouting data.
@@ -11,7 +11,7 @@ The `DemoAnalyzer` processes BX containing at least a muon and produces a ROOT f
 ## Ntuplizer
 
 Example of an `EDAnalyzer` creating a ROOT tree with L1T scouting data.
-Along with the standard `L1Scouting` stream, containing all the BX in a given orbit, the plugin can be used to process data selected by the an online selection, available in the `L1ScoutingSelection` stream.
+Along with the standard `L1Scouting` stream, containing all the BX in a given orbit, the plugin can be used to process data selected by the an online selection, available in the `L1ScoutingSelection` stream introduced from run `380321` (Era `2024D`).
 The output file can be read, for example, with `uproot`:
 ```
 orbit: uint32,
@@ -26,13 +26,13 @@ egEta: var * float32,
 egPhi: var * float32,
 egIso: var * int32,
 ...
+
 ```
 
 ## L1 Scouting data
 
 ### 2023
 Data collected during 2023 available in DAS, more info in [this](https://indico.cern.ch/event/1381539/contributions/5806977/attachments/2799342/4883215/L1scoutingdataavailability.pdf) slide.
-A new data tier `L1SCOUT` will to be used for 2024 data.
 DAS query:
 ```
 file dataset=/L1ScoutUGMTCALO/Run2023C-v1/RAW run=368636
@@ -76,11 +76,23 @@ Members of `l1t::Jet`, `l1t::EGamma`, `l1t::EtSum`, `l1t::Tau` and `l1t::Muon` o
 * `StreamL1Scouting`: contains all BX in an orbit but prescaled, i.e. only a fraction of the full orbits is kept.
 * `StreamL1ScoutingSelection`: constains a selection of BX in an orbit (e.g. BX with at least two jets), but for all the orbits.
 
+Both are available on DAS, on two dataset named as the streams and `L1SCOUT` data tier.
+For example, the following queries can be used to retrieve the list of files for a specific run
+
+```
+file dataset=/L1ScoutingSelection/Run2024D-v1/L1SCOUT run=380346
+```
+and
+```
+file dataset=/L1ScoutingSelection/Run2024D-v1/L1SCOUT run=380346
+```
+
 ## Instructions for the demo
 
 ### Demo Analyzer
 ```
 # create a project area
+# Any pre-release >14_1_0_pre1 can be used, or >14_0_5
 cmsrel CMSSW_14_1_0_pre1 
 
 cd CMSSW_14_1_0_pre1/src
@@ -105,9 +117,10 @@ cmsRun python/demo_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run20
 ```
 # Follow the steps used to setup the Demo Analyzer example project area
 
-# ntuplize BX selected by the Dijet30Barrel selection
-cmsRun python/ntuplizer_cfg.py inFile=file:run380074_ls0200_streamL1ScoutingSelection.root outFile=ntuple_dijet.root numOrbits=10 onlineSelection=Dijet30Barrel
+# ntuplize BX selected by the Dijet30Barrel selection for 10 orbits
+cmsRun python/ntuplizer_cfg.py inFile=inFile=root://cms-xrd-global.cern.ch//store/data/Run2024D/L1ScoutingSelection/L1SCOUT/v1/000/380/346/00000/7c9d
+89df-449a-47a7-9ce7-958b55185c82.root outFile=ntuple_dijet.root numOrbits=10 onlineSelection=Dijet30Barrel
 
-# ntuplize all BX for a prescaled fraction of orbits
-cmsRun python/ntuplizer_cfg.py inFile=file:run380074_ls0200_streamL1Scouting.root outFile=ntuple_fullOrbit.root numOrbits=10
+# ntuplize all BX for a prescaled fraction of orbits (10)
+cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2024D/L1Scouting/L1SCOUT/v1/000/380/346/00000/ee9f4dfe-be97-4d5d-959f-1140b9ec2894.root outFile=ntuple_fullOrbit.root numOrbits=10
 ```
