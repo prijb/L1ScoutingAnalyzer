@@ -26,7 +26,6 @@ egEta: var * float32,
 egPhi: var * float32,
 egIso: var * int32,
 ...
-
 ```
 
 ## L1 Scouting data
@@ -92,7 +91,7 @@ file dataset=/L1ScoutingSelection/Run2024D-v1/L1SCOUT run=380346
 ### Demo Analyzer
 ```
 # create a project area
-# Any pre-release >14_1_0_pre1 can be used, or >14_0_5
+# Any pre-release of (14_1_X) >14_1_0_pre1 can be used, or >14_0_5 for the 14_0_X release cycle
 cmsrel CMSSW_14_1_0_pre1 
 
 cd CMSSW_14_1_0_pre1/src
