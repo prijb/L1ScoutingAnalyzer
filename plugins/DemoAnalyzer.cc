@@ -2,7 +2,6 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/global/EDAnalyzer.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
-//#include "FWCore/Framework/interface/one/implementors.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -199,9 +198,6 @@ void DemoAnalyzer::processDataBx(
       m_1dhist_["MuonPt"]->Fill(muon.pt());
     }
 
-    // collections are sorted based on the object Pt. For exampel, the leading muon Pt
-    // can be obtained with l1muons_[0].pt()
-    
     // number of jets in bx
     m_1dhist_["numJetsBx_wMuon"]->Fill(jets.size());
 

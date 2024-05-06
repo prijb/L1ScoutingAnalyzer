@@ -79,12 +79,15 @@ Both are available on DAS, on two dataset named as the streams and `L1SCOUT` dat
 For example, the following queries can be used to retrieve the list of files for a specific run
 
 ```
-file dataset=/L1ScoutingSelection/Run2024D-v1/L1SCOUT run=380346
+file dataset=/L1Scouting/Run2024D-v1/L1SCOUT run=380346
 ```
 and
 ```
 file dataset=/L1ScoutingSelection/Run2024D-v1/L1SCOUT run=380346
 ```
+
+The main difference compared to 2023 is that new calorimeter data is being collected without any imposed hardware threshold.
+Hence, all Jets, E/Gammas and Taus are available in the `L1ScoutingDataset`. 
 
 ## Instructions for the demo
 
@@ -116,10 +119,12 @@ cmsRun python/demo_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run20
 ```
 # Follow the steps used to setup the Demo Analyzer example project area
 
-# ntuplize BX selected by the Dijet30Barrel selection for 10 orbits
+# ntuplize BX selected by the Dijet30Barrel selection for 10 orbits 
+# (from the L1ScoutingSelection dataset)
 cmsRun python/ntuplizer_cfg.py inFile=inFile=root://cms-xrd-global.cern.ch//store/data/Run2024D/L1ScoutingSelection/L1SCOUT/v1/000/380/346/00000/7c9d
 89df-449a-47a7-9ce7-958b55185c82.root outFile=ntuple_dijet.root numOrbits=10 onlineSelection=Dijet30Barrel
 
 # ntuplize all BX for a prescaled fraction of orbits (10)
+# (from the L1Scouting dataset)
 cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2024D/L1Scouting/L1SCOUT/v1/000/380/346/00000/ee9f4dfe-be97-4d5d-959f-1140b9ec2894.root outFile=ntuple_fullOrbit.root numOrbits=10
 ```
