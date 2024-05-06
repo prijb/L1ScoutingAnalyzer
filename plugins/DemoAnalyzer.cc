@@ -69,9 +69,7 @@ private:
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::Tau>> tausTokenData_;
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::BxSums>> bxSumsTokenData_;
 
-  // the root file service to handle the output file
-  edm::Service<TFileService> fs;
-
+  
   // l1t standard data format
   std::vector<l1t::Jet> l1jets_;
   std::vector<l1t::EGamma> l1egs_;
@@ -90,6 +88,9 @@ DemoAnalyzer::DemoAnalyzer(const edm::ParameterSet& iPSet)
     tausTokenData_(consumes(iPSet.getParameter<edm::InputTag>("tausTag"))),
     bxSumsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("bxSumsTag")))
   {
+
+  // test shared resources
+  usesResource(TFileService::kSharedResource);
   
   // init internal containers for l1 objects
   l1muons_.reserve(8);
@@ -99,6 +100,7 @@ DemoAnalyzer::DemoAnalyzer(const edm::ParameterSet& iPSet)
   l1sums_.reserve(12);
   
   // create histogram subdir
+  edm::Service<TFileService> fs;
   TFileDirectory histoSubDir = fs->mkdir("histograms");
 
   // Init histograms
@@ -196,9 +198,6 @@ void DemoAnalyzer::processDataBx(
       m_1dhist_["MuonPt"]->Fill(muon.pt());
     }
 
-    // collections are sorted based on the object Pt. For exampel, the leading muon Pt
-    // can be obtained with l1muons_[0].pt()
-    
     // number of jets in bx
     m_1dhist_["numJetsBx_wMuon"]->Fill(jets.size());
 
