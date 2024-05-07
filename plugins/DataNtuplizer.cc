@@ -62,7 +62,6 @@ private:
     const edm::Handle<MuonOrbitCollection>& muonsCollection,
     const edm::Handle<JetOrbitCollection>& jetsCollection,
     const edm::Handle<EGammaOrbitCollection>& eGammasCollection,
-    const edm::Handle<TauOrbitCollection>& tausCollection,
     const edm::Handle<BxSumsOrbitCollection>& bxSumsCollection
   );
 
@@ -71,8 +70,7 @@ private:
     const edm::Handle<MuonOrbitCollection>& muonsCollection,
     const edm::Handle<JetOrbitCollection>& jetsCollection,
     const edm::Handle<EGammaOrbitCollection>& eGammasCollection,
-    const edm::Handle<TauOrbitCollection>& tausCollection,
-    const edm::Handle<BxSumsOrbitCollection>& bxSumsCollection
+    const edm::Handle<BxSumsOrbitCollection>& bxSumsCollection,
     std::vector<unsigned> &filledBxVec
   );
 
@@ -80,13 +78,15 @@ private:
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::Muon>> muonsTokenData_;
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::Jet>> jetsTokenData_;
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::EGamma>> eGammasTokenData_;
-  edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::Tau>> tausTokenData_;
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::BxSums>> bxSumsTokenData_;
 
   //Bool for accounting for online bx selection
   bool onlineSelection_;
   edm::EDGetTokenT<std::vector<unsigned>> selectedBxToken_;
 
+  // Histograms
+  std::map<std::string, TH1D*> m_1dhist_;
+  
   // Tree that contains info per bunch crossing
   TTree* tree;
 
@@ -102,7 +102,7 @@ private:
   vector<Int_t> Jet_qual;
 
   //EGamma
-  Int nEGamma;
+  Int_t nEGamma;
   vector<Float16_t> EGamma_pt;
   vector<Float16_t> EGamma_eta;
   vector<Float16_t> EGamma_phi;
@@ -133,7 +133,6 @@ DataNtuplizer::DataNtuplizer(const edm::ParameterSet& iPSet)
   : muonsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("muonsTag"))),
     jetsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("jetsTag"))),
     eGammasTokenData_(consumes(iPSet.getParameter<edm::InputTag>("eGammasTag"))),
-    tausTokenData_(consumes(iPSet.getParameter<edm::InputTag>("tausTag"))),
     bxSumsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("bxSumsTag"))),
     onlineSelection_(iPSet.getUntrackedParameter<bool>("onlineSelection"))
   {
@@ -204,13 +203,11 @@ void DataNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&) {
   edm::Handle<OrbitCollection<l1ScoutingRun3::Muon>> muonsCollection; 
   edm::Handle<OrbitCollection<l1ScoutingRun3::Jet>> jetsCollection; 
   edm::Handle<OrbitCollection<l1ScoutingRun3::EGamma>> eGammasCollection; 
-  edm::Handle<OrbitCollection<l1ScoutingRun3::Tau>> tausCollection; 
   edm::Handle<OrbitCollection<l1ScoutingRun3::BxSums>> bxSumsCollection; 
 
   iEvent.getByToken(muonsTokenData_, muonsCollection); 
   iEvent.getByToken(jetsTokenData_, jetsCollection); 
   iEvent.getByToken(eGammasTokenData_, eGammasCollection); 
-  iEvent.getByToken(tausTokenData_, tausCollection); 
   iEvent.getByToken(bxSumsTokenData_, bxSumsCollection); 
 
   // List of bunch crossings passing selections
@@ -221,7 +218,7 @@ void DataNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&) {
     bxList = *selectedBx;
   }
   else{
-    getFilledBx(muonsCollection, jetsCollection, eGammasCollection, tausCollection, bxSumsCollection, bxList);
+    getFilledBx(muonsCollection, jetsCollection, eGammasCollection, bxSumsCollection, bxList);
   }
 
   // get orbit number orbit
@@ -235,7 +232,6 @@ void DataNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&) {
         muonsCollection,
         jetsCollection,
         eGammasCollection,
-        tausCollection,
         bxSumsCollection
     ); 
   }
@@ -249,7 +245,6 @@ void DataNtuplizer::processDataBx(
   const edm::Handle<MuonOrbitCollection>& muonsCollection,
   const edm::Handle<JetOrbitCollection>& jetsCollection,
   const edm::Handle<EGammaOrbitCollection>& eGammasCollection,
-  const edm::Handle<TauOrbitCollection>& tausCollection,
   const edm::Handle<BxSumsOrbitCollection>& bxSumsCollection
   )
   {
@@ -260,20 +255,8 @@ void DataNtuplizer::processDataBx(
   // get iterator for the current BX
   const auto& jets = jetsCollection->bxIterator(bx);
   const auto& eGammas = eGammasCollection->bxIterator(bx);
-  const auto& taus = tausCollection->bxIterator(bx);
   const auto& bxSums = bxSumsCollection->bxIterator(bx);
   const auto& muons = muonsCollection->bxIterator(bx);
-
-  // convert scouting objects to l1t::objects for semplicity
-  // Note: Scouting objects are stored in hw quantities, if only a subset
-  // of the features is needed, the function in L1TriggerScouting/Utilities/interface/conversion.h
-  // can be used to get physical quantities.
-  // for example, the momentum of a muon can be obtained with ugmt::fPt(hwPt);
-  l1jets_.clear();
-  l1egs_.clear();
-  l1taus_.clear();
-  l1sums_.clear();
-  l1muons_.clear();
 
   Muon_pt.clear();
   Muon_eta.clear();
@@ -296,7 +279,7 @@ void DataNtuplizer::processDataBx(
   nMuon = muons.size();
 
   for (const auto& muon : muons) {
-    l1muons_.emplace_back(getL1TMuon(muon));
+    l1t::Muon l1muon = getL1TMuon(muon);
     Muon_pt.push_back(l1muon.pt());
     Muon_eta.push_back(l1muon.eta());
     Muon_phi.push_back(l1muon.phi());
@@ -326,11 +309,15 @@ void DataNtuplizer::processDataBx(
   nEGamma = eGammas.size();
 
   for (const auto& egamma : eGammas) {
-    l1egs_.emplace_back(getL1TEGamma(egamma));
+    l1t::EGamma l1egamma = getL1TEGamma(egamma);
+    EGamma_pt.push_back(l1egamma.pt());
+    EGamma_eta.push_back(l1egamma.eta());
+    EGamma_phi.push_back(l1egamma.phi());
+    EGamma_e.push_back(l1egamma.energy());
+    EGamma_Iso.push_back(l1egamma.hwIso());
+    egamma_counter++;
   }
-  for (const auto& tau : taus) {
-    l1taus_.emplace_back(getL1TTau(tau));
-  }    
+
 
   // store some of the sums
   if (bxSums.size()>0){
@@ -395,7 +382,6 @@ void DataNtuplizer::getFilledBx(
   const edm::Handle<MuonOrbitCollection>& muonsCollection,
   const edm::Handle<JetOrbitCollection>& jetsCollection,
   const edm::Handle<EGammaOrbitCollection>& eGammasCollection,
-  const edm::Handle<TauOrbitCollection>& tausCollection,
   const edm::Handle<BxSumsOrbitCollection>& bxSumsCollection,
   std::vector<unsigned> &filledBxVec
   )
@@ -404,7 +390,6 @@ void DataNtuplizer::getFilledBx(
   std::vector<unsigned> muonBx = muonsCollection->getFilledBxs();
   std::vector<unsigned> jetBx = jetsCollection->getFilledBxs();
   std::vector<unsigned> eGammaBx = eGammasCollection->getFilledBxs();
-  std::vector<unsigned> tauBx = tausCollection->getFilledBxs();
   std::vector<unsigned> bxSumsBx = bxSumsCollection->getFilledBxs();
 
   // Get the intersection of the bunch crossings
@@ -417,9 +402,6 @@ void DataNtuplizer::getFilledBx(
     filledBxSet.insert(bx);
   }
   for(const unsigned & bx: eGammasCollection->getFilledBxs()){
-    filledBxSet.insert(bx);
-  }
-  for(const unsigned & bx: tausCollection->getFilledBxs()){
     filledBxSet.insert(bx);
   }
 

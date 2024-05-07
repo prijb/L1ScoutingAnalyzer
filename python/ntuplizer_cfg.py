@@ -66,7 +66,6 @@ if options.isData:
       muonsTag      = cms.InputTag("FinalBxSelector", "Muon"),
       jetsTag       = cms.InputTag("FinalBxSelector", "Jet"),
       eGammasTag    = cms.InputTag("FinalBxSelector", "EGamma"),
-      tausTag       = cms.InputTag("FinalBxSelector", "Tau"),
       bxSumsTag     = cms.InputTag("FinalBxSelector", "EtSum"),
       onlineSelection = cms.untracked.bool(True),
       selectedBxTag = cms.InputTag(options.onlineSelection, "SelBx")
@@ -76,7 +75,6 @@ if options.isData:
       muonsTag      = cms.InputTag("l1ScGmtUnpacker", "Muon"),
       jetsTag       = cms.InputTag("l1ScCaloUnpacker", "Jet"),
       eGammasTag    = cms.InputTag("l1ScCaloUnpacker", "EGamma"),
-      tausTag       = cms.InputTag("l1ScCaloUnpacker", "Tau"),
       bxSumsTag     = cms.InputTag("l1ScCaloUnpacker", "EtSum"),
       onlineSelection = cms.untracked.bool(False)
     )
