@@ -167,10 +167,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   //Jet_puDonutEt.clear();
 
   //Gen event pT hat
-  genPtHat = 0;
-  if(genEventInfo.isValid()){
-    genPtHat = genEventInfo->binningValues()[0];
-  }
+  genPtHat = (genEventInfo->hasBinningValues() ? genEventInfo->binningValues()[0] : 0.0);
 
   nMuon = 0;
 
