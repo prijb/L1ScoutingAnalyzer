@@ -68,12 +68,15 @@ private:
   vector<Float16_t> Jet_phi;
   vector<Float16_t> Jet_e;
   vector<Int_t> Jet_qual;
-  vector<Int_t> Jet_towerIEta;
-  vector<Int_t> Jet_towerIPhi;
-  vector<Int_t> Jet_rawEt;
-  vector<Int_t> Jet_seedEt;
-  vector<Int_t> Jet_puEt;
   //vector<Int_t[4]> Jet_puDonutEt;
+
+  //EGamma
+  Int_t nEGamma;
+  vector<Float16_t> EGamma_pt;
+  vector<Float16_t> EGamma_eta;
+  vector<Float16_t> EGamma_phi;
+  vector<Float16_t> EGamma_e;
+  vector<Int_t> EGamma_Iso;
 
   //Muons
   Int_t nMuon;
@@ -86,6 +89,10 @@ private:
   vector<Float16_t> Muon_etaAtVtx;
   vector<Float16_t> Muon_phiAtVtx;
   vector<Int_t> Muon_hwDXY;
+
+  //et Sums
+  float totalEt, totalHt, missingEt, missingEtPhi, missingHt, missingHtPhi;
+  int towerCount;
 
 };
 
@@ -103,19 +110,26 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
 
   // Create the TTree
   tree = fs->make<TTree>("Events", "Events_bx");
+
   tree->Branch("genPtHat", &genPtHat, "genPtHat/F");
+
+  // Jets
   tree->Branch("nJet", &nJet, "nJet/I");
   tree->Branch("Jet_pt", &Jet_pt);
   tree->Branch("Jet_eta", &Jet_eta);
   tree->Branch("Jet_phi", &Jet_phi);
   tree->Branch("Jet_e", &Jet_e);
   tree->Branch("Jet_qual", &Jet_qual);
-  tree->Branch("Jet_towerIEta", &Jet_towerIEta);
-  tree->Branch("Jet_towerIPhi", &Jet_towerIPhi);
-  tree->Branch("Jet_rawEt", &Jet_rawEt);
-  tree->Branch("Jet_seedEt", &Jet_seedEt);
-  tree->Branch("Jet_puEt", &Jet_puEt);
-  //tree->Branch("Jet_puDonutEt", &Jet_puDonutEt);
+
+  // EGammas
+  tree->Branch("nEGamma", &nEGamma, "nEGamma/I");
+  tree->Branch("EGamma_pt", &EGamma_pt);
+  tree->Branch("EGamma_eta", &EGamma_eta);
+  tree->Branch("EGamma_phi", &EGamma_phi);
+  tree->Branch("EGamma_e", &EGamma_e);
+  tree->Branch("EGamma_Iso", &EGamma_Iso);
+  
+  // Muons
   tree->Branch("nMuon", &nMuon, "nMuon/I");
   tree->Branch("Muon_pt", &Muon_pt);
   tree->Branch("Muon_eta", &Muon_eta);
@@ -127,20 +141,29 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("Muon_phiAtVtx", &Muon_phiAtVtx);
   tree->Branch("Muon_hwDXY", &Muon_hwDXY);
 
+  // Sums
+  tree->Branch("etSum", &totalEt);
+  tree->Branch("htSum", &totalHt);
+  tree->Branch("etMiss", &missingEt);
+  tree->Branch("etMissPhi", &missingEtPhi);
+  tree->Branch("htMiss", &missingHt);
+  tree->Branch("htMissPhi", &missingHtPhi);
+  tree->Branch("towerCount", &towerCount);
+
 }
 
 void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   edm::Handle<GenEventInfoProduct> genEventInfo;
   edm::Handle<l1t::JetBxCollection> jetsCollection;
   edm::Handle<l1t::EGammaBxCollection> egammasCollection;
-  edm::Handle<l1t::EtSumBxCollection> etsumsCollection;
+  edm::Handle<l1t::EtSumBxCollection> etSumsCollection;
   edm::Handle<l1t::TauBxCollection> tausCollection;
   edm::Handle<l1t::MuonBxCollection> muonsCollection;
 
   iEvent.getByToken(genEventInfoToken_, genEventInfo);
   iEvent.getByToken(jetToken_, jetsCollection);
   iEvent.getByToken(egToken_, egammasCollection);
-  iEvent.getByToken(etSumToken_, etsumsCollection);
+  iEvent.getByToken(etSumToken_, etSumsCollection);
   iEvent.getByToken(tauToken_, tausCollection);
   iEvent.getByToken(muonToken_, muonsCollection);
 
@@ -159,46 +182,81 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   Jet_phi.clear();
   Jet_e.clear();
   Jet_qual.clear();
-  Jet_towerIEta.clear();
-  Jet_towerIPhi.clear();
-  Jet_rawEt.clear();
-  Jet_seedEt.clear();
-  Jet_puEt.clear();
-  //Jet_puDonutEt.clear();
+
+  EGamma_pt.clear();
+  EGamma_eta.clear();
+  EGamma_phi.clear();
+  EGamma_e.clear();
+  EGamma_Iso.clear();
+
 
   //Gen event pT hat
   genPtHat = (genEventInfo->hasBinningValues() ? genEventInfo->binningValues()[0] : 0.0);
 
   nMuon = 0;
 
-  for (const auto& muon : *muonsCollection) {
-    Muon_pt.push_back(muon.pt());
-    Muon_eta.push_back(muon.eta());
-    Muon_phi.push_back(muon.phi());
-    Muon_e.push_back(muon.energy());
-    Muon_qual.push_back(muon.hwQual());
-    Muon_hwCharge.push_back(muon.hwCharge());
-    Muon_etaAtVtx.push_back(muon.etaAtVtx());
-    Muon_phiAtVtx.push_back(muon.phiAtVtx());
-    Muon_hwDXY.push_back(muon.hwDXY());
+  for (l1t::MuonBxCollection::const_iterator muon = muonsCollection->begin(0); muon != muonsCollection->end(0); muon++){
+    Muon_pt.push_back(muon->pt());
+    Muon_eta.push_back(muon->eta());
+    Muon_phi.push_back(muon->phi());
+    Muon_e.push_back(muon->energy());
+    Muon_qual.push_back(muon->hwQual());
+    Muon_hwCharge.push_back(muon->hwCharge());
+    Muon_etaAtVtx.push_back(muon->etaAtVtx());
+    Muon_phiAtVtx.push_back(muon->phiAtVtx());
+    Muon_hwDXY.push_back(muon->hwDXY());
     nMuon++;
   }
 
   nJet = 0;
 
-  for (const auto& jet : *jetsCollection) {
-    Jet_pt.push_back(jet.pt());
-    Jet_eta.push_back(jet.eta());
-    Jet_phi.push_back(jet.phi());
-    Jet_e.push_back(jet.energy());
-    Jet_qual.push_back(jet.hwQual());
-    Jet_towerIEta.push_back(jet.towerIEta());
-    Jet_towerIPhi.push_back(jet.towerIPhi());
-    Jet_rawEt.push_back(jet.rawEt());
-    Jet_seedEt.push_back(jet.seedEt());
-    Jet_puEt.push_back(jet.puEt());
-    //Jet_puDonutEt.push_back(jet.puDonutEt());
+  for (l1t::JetBxCollection::const_iterator jet = jetsCollection->begin(0); jet != jetsCollection->end(0); jet++){
+    Jet_pt.push_back(jet->pt());
+    Jet_eta.push_back(jet->eta());
+    Jet_phi.push_back(jet->phi());
+    Jet_e.push_back(jet->energy());
+    Jet_qual.push_back(jet->hwQual());
     nJet++;
+  }
+
+  nEGamma = 0;
+
+  for (l1t::EGammaBxCollection::const_iterator egamma = egammasCollection->begin(0); egamma != egammasCollection->end(0); egamma++){
+    EGamma_pt.push_back(egamma->pt());
+    EGamma_eta.push_back(egamma->eta());
+    EGamma_phi.push_back(egamma->phi());
+    EGamma_e.push_back(egamma->energy());
+    EGamma_Iso.push_back(egamma->hwIso());
+    nEGamma++;
+  }
+
+  for (l1t::EtSumBxCollection::const_iterator etSum = etSumsCollection->begin(0); etSum != etSumsCollection->end(0); etSum++){
+    switch (etSum->getType()){
+      case l1t::EtSum::EtSumType::kTotalEt:
+        totalEt = etSum->pt();
+        break;
+      
+      case l1t::EtSum::EtSumType::kTotalHt:
+        totalHt = etSum->pt();
+        break;
+      
+      case l1t::EtSum::EtSumType::kMissingEt:
+        missingEt = etSum->pt();
+        missingEtPhi = etSum->phi();
+        break;
+      
+      case l1t::EtSum::EtSumType::kMissingHt:
+        missingHt = etSum->pt();
+        missingHtPhi = etSum->phi();
+        break;
+      
+      case l1t::EtSum::EtSumType::kTowerCount:
+        towerCount = etSum->hwPt();
+        break;
+      
+      default:
+        continue;
+    }
   }
 
   tree->Fill();
