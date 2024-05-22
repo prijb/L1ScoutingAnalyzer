@@ -14,6 +14,10 @@
 
 // Gen event info (pt hat)
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
+#include "DataFormats/JetReco/interface/GenJet.h"
+#include "DataFormats/JetReco/interface/GenJetCollection.h"
 
 // root include files
 #include "FWCore/ServiceRegistry/interface/Service.h"
@@ -50,6 +54,8 @@ private:
 
   // Tokens for l1t objects
   edm::EDGetTokenT<GenEventInfoProduct> genEventInfoToken_;
+  edm::EDGetTokenT<reco::GenParticleCollection> genParticlesToken_;
+  edm::EDGetTokenT<reco::GenJetCollection> genJetsToken_;
   edm::EDGetTokenT<l1t::JetBxCollection> jetToken_;
   edm::EDGetTokenT<l1t::EGammaBxCollection> egToken_;
   edm::EDGetTokenT<l1t::EtSumBxCollection> etSumToken_;
@@ -59,7 +65,22 @@ private:
   // Tree that contains info per bunch crossing
   TTree* tree;
 
+  //Gen info
   Float_t genPtHat;
+  Int_t nGenPart;
+  Int_t nGenJet;
+  vector<Float16_t> GenPart_pt;
+  vector<Float16_t> GenPart_eta;
+  vector<Float16_t> GenPart_phi;
+  vector<Float16_t> GenPart_e;
+  vector<Float16_t> GenPart_mass;
+  vector<Int_t> GenPart_pdgId;
+  vector<Int_t> GenPart_charge;
+  
+  vector<Float16_t> GenJet_pt;
+  vector<Float16_t> GenJet_eta;
+  vector<Float16_t> GenJet_phi;
+  vector<Float16_t> GenJet_e;
   
   //Jets
   Int_t nJet;
@@ -98,6 +119,8 @@ private:
 
 MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   :genEventInfoToken_(consumes<GenEventInfoProduct>(iPset.getParameter<edm::InputTag>("genEventInfoTag"))), 
+  genParticlesToken_(consumes<reco::GenParticleCollection>(iPset.getParameter<edm::InputTag>("genParticlesTag"))),
+  genJetsToken_(consumes<reco::GenJetCollection>(iPset.getParameter<edm::InputTag>("genJetsTag"))),
   jetToken_(consumes<l1t::JetBxCollection>(iPset.getParameter<edm::InputTag>("jetsTag"))),
   egToken_(consumes<l1t::EGammaBxCollection>(iPset.getParameter<edm::InputTag>("eGammasTag"))),
   etSumToken_(consumes<l1t::EtSumBxCollection>(iPset.getParameter<edm::InputTag>("etSumsTag"))),
@@ -111,8 +134,23 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   // Create the TTree
   tree = fs->make<TTree>("Events", "Events_bx");
 
+  //Gen info
   tree->Branch("genPtHat", &genPtHat, "genPtHat/F");
+  tree->Branch("nGenPart", &nGenPart, "nGenPart/I");
+  tree->Branch("GenPart_pt", &GenPart_pt);
+  tree->Branch("GenPart_eta", &GenPart_eta);
+  tree->Branch("GenPart_phi", &GenPart_phi);
+  tree->Branch("GenPart_e", &GenPart_e);
+  tree->Branch("GenPart_mass", &GenPart_mass);
+  tree->Branch("GenPart_pdgId", &GenPart_pdgId);
+  tree->Branch("GenPart_charge", &GenPart_charge);
 
+  tree->Branch("nGenJet", &nGenJet, "nGenJet/I");
+  tree->Branch("GenJet_pt", &GenJet_pt);
+  tree->Branch("GenJet_eta", &GenJet_eta);
+  tree->Branch("GenJet_phi", &GenJet_phi);
+  tree->Branch("GenJet_e", &GenJet_e);
+  
   // Jets
   tree->Branch("nJet", &nJet, "nJet/I");
   tree->Branch("Jet_pt", &Jet_pt);
@@ -154,6 +192,8 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
 
 void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   edm::Handle<GenEventInfoProduct> genEventInfo;
+  edm::Handle<reco::GenParticleCollection> genParticles;
+  edm::Handle<reco::GenJetCollection> genJets;
   edm::Handle<l1t::JetBxCollection> jetsCollection;
   edm::Handle<l1t::EGammaBxCollection> egammasCollection;
   edm::Handle<l1t::EtSumBxCollection> etSumsCollection;
@@ -161,11 +201,26 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   edm::Handle<l1t::MuonBxCollection> muonsCollection;
 
   iEvent.getByToken(genEventInfoToken_, genEventInfo);
+  iEvent.getByToken(genParticlesToken_, genParticles);
+  iEvent.getByToken(genJetsToken_, genJets);
   iEvent.getByToken(jetToken_, jetsCollection);
   iEvent.getByToken(egToken_, egammasCollection);
   iEvent.getByToken(etSumToken_, etSumsCollection);
   iEvent.getByToken(tauToken_, tausCollection);
   iEvent.getByToken(muonToken_, muonsCollection);
+
+  GenPart_pt.clear();
+  GenPart_eta.clear();
+  GenPart_phi.clear();
+  GenPart_e.clear();
+  GenPart_mass.clear();
+  GenPart_pdgId.clear();
+  GenPart_charge.clear();
+
+  GenJet_pt.clear();
+  GenJet_eta.clear();
+  GenJet_phi.clear();
+  GenJet_e.clear();
 
   Muon_pt.clear();
   Muon_eta.clear();
@@ -193,6 +248,45 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   //Gen event pT hat
   genPtHat = (genEventInfo->hasBinningValues() ? genEventInfo->binningValues()[0] : 0.0);
 
+  //Gen particles
+  nGenPart = 0;
+  if(genParticles.isValid()){
+    for (reco::GenParticleCollection::const_iterator genParticle = genParticles->begin(); genParticle != genParticles->end(); genParticle++){
+      //Skip particles that don't pass pT cut (>5 unless muons for which >3 is set)
+      bool fill = false;
+      if(abs(genParticle->pdgId()) == 13){
+        if(genParticle->pt() > 3) fill = true;
+      }
+      else{
+        if(genParticle->pt() > 5) fill = true;
+      }
+      if(!fill) continue;
+      GenPart_pt.push_back(genParticle->pt());
+      GenPart_eta.push_back(genParticle->eta());
+      GenPart_phi.push_back(genParticle->phi());
+      GenPart_e.push_back(genParticle->energy());
+      GenPart_mass.push_back(genParticle->mass());
+      GenPart_pdgId.push_back(genParticle->pdgId());
+      GenPart_charge.push_back(genParticle->charge());
+      nGenPart++;
+    }
+  }
+
+  //Gen jets
+  nGenJet = 0;
+  if(genJets.isValid()){
+    for (reco::GenJetCollection::const_iterator genJet = genJets->begin(); genJet != genJets->end(); genJet++){
+      //Only store gen jets with pT > 10 GeV
+      if(genJet->pt() < 10) continue;
+      GenJet_pt.push_back(genJet->pt());
+      GenJet_eta.push_back(genJet->eta());
+      GenJet_phi.push_back(genJet->phi());
+      GenJet_e.push_back(genJet->energy());
+      nGenJet++;
+    }
+  }
+
+  //Muons
   nMuon = 0;
 
   for (l1t::MuonBxCollection::const_iterator muon = muonsCollection->begin(0); muon != muonsCollection->end(0); muon++){

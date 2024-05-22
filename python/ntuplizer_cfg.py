@@ -82,6 +82,8 @@ if options.isData:
 else:
   process.scNtuplizer = cms.EDAnalyzer("MCNtuplizer",
     genEventInfoTag        = cms.InputTag("generator"),
+    genParticlesTag        = cms.InputTag("prunedGenParticles"),
+    genJetsTag             = cms.InputTag("slimmedGenJets"),
     muonsTag      = cms.InputTag("gmtStage2Digis", "Muon"),
     jetsTag       = cms.InputTag("caloStage2Digis", "Jet"),
     eGammasTag    = cms.InputTag("caloStage2Digis", "EGamma"),
