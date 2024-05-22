@@ -34,6 +34,10 @@
 #include "DataFormats/L1Trigger/interface/Tau.h"
 #include "DataFormats/L1Trigger/interface/EtSum.h"
 
+// Reco collections
+#include "DataFormats/PatCandidates/interface/Jet.h"
+#include "DataFormats/PatCandidates/interface/MET.h"
+
 #include <memory>
 #include <utility>
 #include <vector>
@@ -52,15 +56,21 @@ private:
   void beginJob() override;
   void endJob() override;
 
-  // Tokens for l1t objects
+  // Tokens for gen objects
   edm::EDGetTokenT<GenEventInfoProduct> genEventInfoToken_;
   edm::EDGetTokenT<reco::GenParticleCollection> genParticlesToken_;
   edm::EDGetTokenT<reco::GenJetCollection> genJetsToken_;
+  // Tokens for l1t objects
   edm::EDGetTokenT<l1t::JetBxCollection> jetToken_;
   edm::EDGetTokenT<l1t::EGammaBxCollection> egToken_;
   edm::EDGetTokenT<l1t::EtSumBxCollection> etSumToken_;
   edm::EDGetTokenT<l1t::TauBxCollection> tauToken_;
   edm::EDGetTokenT<l1t::MuonBxCollection> muonToken_;
+  // Tokens for reco objects
+  edm::EDGetTokenT<pat::JetCollection> recoJetToken_;
+  edm::EDGetTokenT<pat::JetCollection> recoJetPuppiToken_;
+  edm::EDGetTokenT<pat::METCollection> recoMetToken_;
+  edm::EDGetTokenT<pat::METCollection> recoMetPuppiToken_;
 
   // Tree that contains info per bunch crossing
   TTree* tree;
@@ -115,6 +125,30 @@ private:
   float totalEt, totalHt, missingEt, missingEtPhi, missingHt, missingHtPhi;
   int towerCount;
 
+  //Reco jets
+  Int_t nRecoJet;
+  vector<Float16_t> RecoJet_pt;
+  vector<Float16_t> RecoJet_eta;
+  vector<Float16_t> RecoJet_phi;
+  vector<Float16_t> RecoJet_e;
+  vector<Float16_t> RecoJet_mass;
+
+  //Puppi jets
+  Int_t nRecoJetPuppi;
+  vector<Float16_t> RecoJetPuppi_pt;
+  vector<Float16_t> RecoJetPuppi_eta;
+  vector<Float16_t> RecoJetPuppi_phi;
+  vector<Float16_t> RecoJetPuppi_e;
+  vector<Float16_t> RecoJetPuppi_mass;
+
+  //Reco MET
+  Float16_t RecoMet_pt;
+  Float16_t RecoMet_phi;
+
+  //Puppi MET
+  Float16_t RecoMetPuppi_pt;
+  Float16_t RecoMetPuppi_phi;
+
 };
 
 MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
@@ -125,7 +159,11 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   egToken_(consumes<l1t::EGammaBxCollection>(iPset.getParameter<edm::InputTag>("eGammasTag"))),
   etSumToken_(consumes<l1t::EtSumBxCollection>(iPset.getParameter<edm::InputTag>("etSumsTag"))),
   tauToken_(consumes<l1t::TauBxCollection>(iPset.getParameter<edm::InputTag>("tausTag"))),
-  muonToken_(consumes<l1t::MuonBxCollection>(iPset.getParameter<edm::InputTag>("muonsTag")))
+  muonToken_(consumes<l1t::MuonBxCollection>(iPset.getParameter<edm::InputTag>("muonsTag"))),
+  recoJetToken_(consumes<pat::JetCollection>(iPset.getParameter<edm::InputTag>("recoJetsTag"))),
+  recoJetPuppiToken_(consumes<pat::JetCollection>(iPset.getParameter<edm::InputTag>("recoJetsPuppiTag"))),
+  recoMetToken_(consumes<pat::METCollection>(iPset.getParameter<edm::InputTag>("recoMetTag"))),
+  recoMetPuppiToken_(consumes<pat::METCollection>(iPset.getParameter<edm::InputTag>("recoMetPuppiTag")))
 {
 
   // the root file service to handle the output file
@@ -188,6 +226,30 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("htMissPhi", &missingHtPhi);
   tree->Branch("towerCount", &towerCount);
 
+  // Reco jet
+  tree->Branch("nRecoJet", &nRecoJet, "nRecoJet/I");
+  tree->Branch("RecoJet_pt", &RecoJet_pt);
+  tree->Branch("RecoJet_eta", &RecoJet_eta);
+  tree->Branch("RecoJet_phi", &RecoJet_phi);
+  tree->Branch("RecoJet_e", &RecoJet_e);
+  tree->Branch("RecoJet_mass", &RecoJet_mass);
+
+  // Reco jet puppi
+  tree->Branch("nRecoJetPuppi", &nRecoJetPuppi, "nRecoJetPuppi/I");
+  tree->Branch("RecoJetPuppi_pt", &RecoJetPuppi_pt);
+  tree->Branch("RecoJetPuppi_eta", &RecoJetPuppi_eta);
+  tree->Branch("RecoJetPuppi_phi", &RecoJetPuppi_phi);
+  tree->Branch("RecoJetPuppi_e", &RecoJetPuppi_e);
+  tree->Branch("RecoJetPuppi_mass", &RecoJetPuppi_mass);
+
+  // Reco MET
+  tree->Branch("RecoMet_pt", &RecoMet_pt, "RecoMet_pt/F");
+  tree->Branch("RecoMet_phi", &RecoMet_phi, "RecoMet_phi/F");
+  
+  // Reco MET Puppi
+  tree->Branch("RecoMetPuppi_pt", &RecoMetPuppi_pt, "RecoMetPuppi_pt/F");
+  tree->Branch("RecoMetPuppi_phi", &RecoMetPuppi_phi, "RecoMetPuppi_phi/F");
+
 }
 
 void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
@@ -199,6 +261,10 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   edm::Handle<l1t::EtSumBxCollection> etSumsCollection;
   edm::Handle<l1t::TauBxCollection> tausCollection;
   edm::Handle<l1t::MuonBxCollection> muonsCollection;
+  edm::Handle<pat::JetCollection> recoJets;
+  edm::Handle<pat::JetCollection> recoJetsPuppi;
+  edm::Handle<pat::METCollection> recoMet;
+  edm::Handle<pat::METCollection> recoMetPuppi;
 
   iEvent.getByToken(genEventInfoToken_, genEventInfo);
   iEvent.getByToken(genParticlesToken_, genParticles);
@@ -208,6 +274,10 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   iEvent.getByToken(etSumToken_, etSumsCollection);
   iEvent.getByToken(tauToken_, tausCollection);
   iEvent.getByToken(muonToken_, muonsCollection);
+  iEvent.getByToken(recoJetToken_, recoJets);
+  iEvent.getByToken(recoJetPuppiToken_, recoJetsPuppi);
+  iEvent.getByToken(recoMetToken_, recoMet);
+  iEvent.getByToken(recoMetPuppiToken_, recoMetPuppi);
 
   GenPart_pt.clear();
   GenPart_eta.clear();
@@ -243,6 +313,24 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   EGamma_phi.clear();
   EGamma_e.clear();
   EGamma_Iso.clear();
+
+  RecoJet_pt.clear();
+  RecoJet_eta.clear();
+  RecoJet_phi.clear();
+  RecoJet_e.clear();
+  RecoJet_mass.clear();
+
+  RecoJetPuppi_pt.clear();
+  RecoJetPuppi_eta.clear();
+  RecoJetPuppi_phi.clear();
+  RecoJetPuppi_e.clear();
+  RecoJetPuppi_mass.clear();
+
+  RecoMet_pt = -999;
+  RecoMet_phi = -999;
+
+  RecoMetPuppi_pt = -999;
+  RecoMetPuppi_phi = -999;
 
 
   //Gen event pT hat
@@ -351,6 +439,40 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
       default:
         continue;
     }
+  }
+
+  nRecoJet = 0;
+  if(recoJets.isValid()){
+    for (pat::JetCollection::const_iterator recoJet = recoJets->begin(); recoJet != recoJets->end(); recoJet++){
+      RecoJet_pt.push_back(recoJet->pt());
+      RecoJet_eta.push_back(recoJet->eta());
+      RecoJet_phi.push_back(recoJet->phi());
+      RecoJet_e.push_back(recoJet->energy());
+      RecoJet_mass.push_back(recoJet->mass());
+      nRecoJet++;
+    }
+  }
+
+  nRecoJetPuppi = 0;
+  if(recoJetsPuppi.isValid()){
+    for (pat::JetCollection::const_iterator recoJetPuppi = recoJetsPuppi->begin(); recoJetPuppi != recoJetsPuppi->end(); recoJetPuppi++){
+      RecoJetPuppi_pt.push_back(recoJetPuppi->pt());
+      RecoJetPuppi_eta.push_back(recoJetPuppi->eta());
+      RecoJetPuppi_phi.push_back(recoJetPuppi->phi());
+      RecoJetPuppi_e.push_back(recoJetPuppi->energy());
+      RecoJetPuppi_mass.push_back(recoJetPuppi->mass());
+      nRecoJetPuppi++;
+    }
+  }
+
+  if(recoMet.isValid()){
+    RecoMet_pt = recoMet->begin()->pt();
+    RecoMet_phi = recoMet->begin()->phi();
+  }
+  
+  if(recoMetPuppi.isValid()){
+    RecoMetPuppi_pt = recoMetPuppi->begin()->pt();
+    RecoMetPuppi_phi = recoMetPuppi->begin()->phi();
   }
 
   tree->Fill();

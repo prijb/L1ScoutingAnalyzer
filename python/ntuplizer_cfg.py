@@ -89,6 +89,10 @@ else:
     eGammasTag    = cms.InputTag("caloStage2Digis", "EGamma"),
     tausTag       = cms.InputTag("caloStage2Digis", "Tau"),
     etSumsTag     = cms.InputTag("caloStage2Digis", "EtSum"),
+    recoJetsTag   = cms.InputTag("slimmedJets"),
+    recoJetsPuppiTag = cms.InputTag("slimmedJetsPuppi"),
+    recoMetTag    = cms.InputTag("slimmedMETs"),
+    recoMetPuppiTag = cms.InputTag("slimmedMETsPuppi")
   )
 
 process.p = cms.Path(
