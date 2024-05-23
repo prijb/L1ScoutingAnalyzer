@@ -444,6 +444,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   nRecoJet = 0;
   if(recoJets.isValid()){
     for (pat::JetCollection::const_iterator recoJet = recoJets->begin(); recoJet != recoJets->end(); recoJet++){
+      if(recoJet->pt() < 10) continue;
       RecoJet_pt.push_back(recoJet->pt());
       RecoJet_eta.push_back(recoJet->eta());
       RecoJet_phi.push_back(recoJet->phi());
@@ -456,6 +457,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   nRecoJetPuppi = 0;
   if(recoJetsPuppi.isValid()){
     for (pat::JetCollection::const_iterator recoJetPuppi = recoJetsPuppi->begin(); recoJetPuppi != recoJetsPuppi->end(); recoJetPuppi++){
+      if(recoJetPuppi->pt() < 10) continue;
       RecoJetPuppi_pt.push_back(recoJetPuppi->pt());
       RecoJetPuppi_eta.push_back(recoJetPuppi->eta());
       RecoJetPuppi_phi.push_back(recoJetPuppi->phi());
