@@ -12,12 +12,12 @@ options.register ("numOrbits",
 
 options.register ("inFile",
                   "file:",
-                  VarParsing.VarParsing.multiplicity.singleton,
+                  VarParsing.VarParsing.multiplicity.list,
                   VarParsing.VarParsing.varType.string,
                   "Path to the input file")
 
 options.register ("outFile",
-                  "file:/tmp/out.root",
+                  "file:output.root",
                   VarParsing.VarParsing.multiplicity.singleton,
                   VarParsing.VarParsing.varType.string,
                   "Path of the output file")
@@ -59,6 +59,10 @@ process.source = cms.Source("PoolSource",
   fileNames = cms.untracked.vstring(options.inFile)
 )
 
+#Skip duplicate check if MC
+if not options.isData:
+  process.source.duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
+
 # Choice of analyzer depends on whether the file is Data or MC
 if options.isData:
   if options.onlineSelection != "":
@@ -84,6 +88,7 @@ else:
     genEventInfoTag        = cms.InputTag("generator"),
     genParticlesTag        = cms.InputTag("prunedGenParticles"),
     genJetsTag             = cms.InputTag("slimmedGenJets"),
+    genFatJetsTag          = cms.InputTag("slimmedGenJetsAK8"),
     muonsTag      = cms.InputTag("gmtStage2Digis", "Muon"),
     jetsTag       = cms.InputTag("caloStage2Digis", "Jet"),
     eGammasTag    = cms.InputTag("caloStage2Digis", "EGamma"),
@@ -92,7 +97,8 @@ else:
     recoJetsTag   = cms.InputTag("slimmedJets"),
     recoJetsPuppiTag = cms.InputTag("slimmedJetsPuppi"),
     recoMetTag    = cms.InputTag("slimmedMETs"),
-    recoMetPuppiTag = cms.InputTag("slimmedMETsPuppi")
+    recoMetPuppiTag = cms.InputTag("slimmedMETsPuppi"),
+    regressionPath = cms.FileInPath("NtuplizerGenPart/L1ScoutingAnalyzer/data/jet_regression_model_new.model")
   )
 
 process.p = cms.Path(
