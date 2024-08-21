@@ -98,7 +98,8 @@ else:
     recoJetsPuppiTag = cms.InputTag("slimmedJetsPuppi"),
     recoMetTag    = cms.InputTag("slimmedMETs"),
     recoMetPuppiTag = cms.InputTag("slimmedMETsPuppi"),
-    regressionPath = cms.FileInPath("NtuplizerGenPart/L1ScoutingAnalyzer/data/jet_regression_model_new.model")
+    #regressionPath = cms.FileInPath("L1ScoutingAnalyzer/L1ScoutingAnalyzer/data/jet_regression_model_new.model")
+    regressionPath = cms.FileInPath("L1ScoutingAnalyzer/L1ScoutingAnalyzer/data/jet_regression_leading_subleading.model")
   )
 
 process.p = cms.Path(

@@ -46,7 +46,7 @@
 #include "DataFormats/PatCandidates/interface/MET.h"
 
 // Pt regression
-#include "NtuplizerGenPart/L1ScoutingAnalyzer/interface/PtRegression.h"
+#include "L1ScoutingAnalyzer/L1ScoutingAnalyzer/interface/PtRegression.h"
 
 #include <memory>
 #include <utility>
@@ -180,6 +180,7 @@ private:
   vector<Float16_t> RecoJetPuppi_phi;
   vector<Float16_t> RecoJetPuppi_e;
   vector<Float16_t> RecoJetPuppi_mass;
+  vector<Float16_t> RecoJetPuppi_partonFlav;
 
   //Reco MET
   Float16_t RecoMet_pt;
@@ -310,6 +311,7 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("RecoJetPuppi_phi", &RecoJetPuppi_phi);
   tree->Branch("RecoJetPuppi_e", &RecoJetPuppi_e);
   tree->Branch("RecoJetPuppi_mass", &RecoJetPuppi_mass);
+  tree->Branch("RecoJetPuppi_partonFlav", &RecoJetPuppi_partonFlav);
 
   // Reco MET
   tree->Branch("RecoMet_pt", &RecoMet_pt, "RecoMet_pt/F");
@@ -327,6 +329,9 @@ void MCNtuplizer::getRegressedPt(PtRegression* ptRegression, std::vector<float> 
   for (UInt_t i=0; i<Jet_pt.size(); i++){
     float regressed_pt;
     float regressed_pt_scale;
+
+    //Jet rank variable
+    int Jet_rank = i;
 
     //Define inputs for isolation
     TLorentzVector EGamma_sum;
@@ -357,7 +362,13 @@ void MCNtuplizer::getRegressedPt(PtRegression* ptRegression, std::vector<float> 
       }
     }
 
+    //Regularised variables
     float Jet_pt_log = TMath::Log(Jet_pt[i]);
+    float totalEt_log = TMath::Log(totalEt);
+    float missingEt_log = TMath::Log(missingEt);
+    float totalHt_log = TMath::Log(totalHt);
+    float missingHt_log = TMath::Log(missingHt);
+    float towerCount_log = TMath::Log(float(towerCount));
 
     //Get relative isolation
     Jet_relEGammaIso = EGamma_sum.Pt() / Jet_pt[i];
@@ -366,10 +377,15 @@ void MCNtuplizer::getRegressedPt(PtRegression* ptRegression, std::vector<float> 
     //std::cout << "Jet pT: " << Jet_pt[i] << ", Jet pT log: " << Jet_pt_log << ", Jet relEGammaIso: " << Jet_relEGammaIso << ", Jet relMuIso: " << Jet_relMuIso << "\n";
 
     //Define inputs for regression
-    std::vector<float> inputs{Jet_pt_log, Jet_eta[i], Jet_phi[i], Jet_relMuIso, Jet_relEGammaIso, totalEt, missingEt, missingEtPhi, totalHt, missingHt, missingHtPhi, float(towerCount)};
+    //std::vector<float> inputs{Jet_pt_log, Jet_eta[i], Jet_phi[i], Jet_relMuIso, Jet_relEGammaIso, totalEt, missingEt, missingEtPhi, totalHt, missingHt, missingHtPhi, float(towerCount)};
+    std::vector<float> inputs{Jet_pt_log, Jet_eta[i], Jet_phi[i], float(Jet_rank), Jet_relMuIso, Jet_relEGammaIso, totalEt_log, missingEt_log, missingEtPhi, totalHt_log, missingHt_log, missingHtPhi, towerCount_log};
 
     //Skip jets with pT > 1000 GeV
     if(Jet_pt[i] > 1000.){
+      regressed_pt = Jet_pt[i];
+    }
+    //Skip fourth jet and beyond
+    else if(Jet_rank > 2){
       regressed_pt = Jet_pt[i];
     }
     else{
@@ -473,6 +489,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   RecoJetPuppi_phi.clear();
   RecoJetPuppi_e.clear();
   RecoJetPuppi_mass.clear();
+  RecoJetPuppi_partonFlav.clear();
 
   RecoMet_pt = -999;
   RecoMet_phi = -999;
@@ -624,6 +641,28 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
     GhostJetInputs.push_back(ghostJet);
     nJet++;
   }
+
+  /*
+  //Scan events where there is a jet without a parton match
+  if(nJet > 0){
+    if(std::find(Jet_partonFlav.begin(), Jet_partonFlav.end(), 0) != Jet_partonFlav.end()){
+      std::cout << "Event with jet without parton match" << "\n";
+      std::cout << "Jet info " << "\n";
+      for(int i = 0; i < nJet; i++){
+        std::cout << "Jet " << i << " pT: " << Jet_pt[i] << " eta: " << Jet_eta[i] << " phi: " << Jet_phi[i] << " partonFlav: " << Jet_partonFlav[i] << "\n";
+      }
+      std::cout << "-------------------------" << "\n";
+      std::cout << "Gen parton info " << "\n";
+      for(int i = 0; i < nGenPart; i++){
+        //Skip if not a quark/EG/Mu
+        if((std::abs(GenPart_pdgId[i]) > 5) && (GenPart_pdgId[i]!=22) && (GenPart_pdgId[i]!=21) && (std::abs(GenPart_pdgId[i]) != 11) && (std::abs(GenPart_pdgId[i]) != 13)) continue;
+        std::cout << "Gen parton " << i << " pT: " << GenPart_pt[i] << " eta: " << GenPart_eta[i] << " phi: " << GenPart_phi[i] << " pdgId: " << GenPart_pdgId[i] << "\n";
+      }
+      std::cout << "-------------------------" << "\n";
+      std::cout << "" << "\n";
+    }
+  }
+  */
 
   
   //Add gen particles to ghost jet inputs
@@ -790,9 +829,8 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   }
   */
   
-
+  /*
   //Using jet, egamma, muon and event sum information
-  
   for (UInt_t i=0; i<Jet_pt.size(); i++){
     float regressed_pt;
     float regressed_pt_scale;
@@ -848,18 +886,60 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
     }
     Jet_pt_regressed.push_back(regressed_pt);
   }
+  */
+  
+  //pT regression function call
+  getRegressedPt(ptRegression, Jet_pt_regressed, Jet_pt, Jet_eta, Jet_phi, totalEt, missingEt, missingEtPhi, totalHt, missingHt, missingHtPhi, towerCount, EGamma_pt, EGamma_eta, EGamma_phi, Muon_pt, Muon_eta, Muon_phi);
   
 
 
   nRecoJetPuppi = 0;
   if(recoJetsPuppi.isValid()){
     for (pat::JetCollection::const_iterator recoJetPuppi = recoJetsPuppi->begin(); recoJetPuppi != recoJetsPuppi->end(); recoJetPuppi++){
-      if(recoJetPuppi->pt() < 10) continue;
+      //if(recoJetPuppi->pt() < 10) continue;
       RecoJetPuppi_pt.push_back(recoJetPuppi->pt());
       RecoJetPuppi_eta.push_back(recoJetPuppi->eta());
       RecoJetPuppi_phi.push_back(recoJetPuppi->phi());
       RecoJetPuppi_e.push_back(recoJetPuppi->energy());
       RecoJetPuppi_mass.push_back(recoJetPuppi->mass());
+
+      //Simple dR matching with gen partons (for Puppi jets)
+      int partonFlav = 0;
+      std::vector<int> partonFlavs{};
+      std::vector<float> partondRs{};
+      for(int i = 0; i < nGenPart; i++){
+        //Ignore if not a quark
+        if((std::abs(GenPart_pdgId[i]) > 5) && (GenPart_pdgId[i]!=21)) continue;
+        float dphi = TVector2::Phi_mpi_pi(recoJetPuppi->phi() - GenPart_phi[i]);
+        float deta = recoJetPuppi->eta() - GenPart_eta[i];
+        float dR = std::sqrt(dphi*dphi + deta*deta);
+        if(dR < 0.4){
+          partonFlavs.push_back(GenPart_pdgId[i]);
+          partondRs.push_back(dR);
+        }
+      }
+      //Assign flavour based on hierarchy 
+      if(partonFlavs.size() > 0){
+        if(std::find(partonFlavs.begin(), partonFlavs.end(), 5) != partonFlavs.end()){
+          partonFlav = 5;
+        }
+        else if(std::find(partonFlavs.begin(), partonFlavs.end(), -5) != partonFlavs.end()){
+          partonFlav = -5;
+        }
+        else if(std::find(partonFlavs.begin(), partonFlavs.end(), 4) != partonFlavs.end()){
+          partonFlav = 4;
+        }
+        else if(std::find(partonFlavs.begin(), partonFlavs.end(), -4) != partonFlavs.end()){
+          partonFlav = -4;
+        }
+        else{
+          //Pick the smallest dR one
+          int minElementIndex = std::min_element(partondRs.begin(), partondRs.end()) - partondRs.begin();
+          partonFlav = partonFlavs[minElementIndex];
+        }
+        //std::cout << "Jet " << nJet << " matched to parton with flavour " << partonFlav << "\n";
+      }
+      RecoJetPuppi_partonFlav.push_back(partonFlav);
       nRecoJetPuppi++;
     }
   }

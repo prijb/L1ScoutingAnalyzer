@@ -1,4 +1,4 @@
-#include "NtuplizerGenPart/L1ScoutingAnalyzer/interface/PtRegression.h"
+#include "L1ScoutingAnalyzer/L1ScoutingAnalyzer/interface/PtRegression.h"
 
 // Sigmoid function
 inline float sigmoid(float x){
