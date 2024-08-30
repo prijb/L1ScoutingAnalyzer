@@ -72,7 +72,8 @@ if options.isData:
       eGammasTag    = cms.InputTag("FinalBxSelector", "EGamma"),
       bxSumsTag     = cms.InputTag("FinalBxSelector", "EtSum"),
       onlineSelection = cms.untracked.bool(True),
-      selectedBxTag = cms.InputTag(options.onlineSelection, "SelBx")
+      selectedBxTag = cms.InputTag(options.onlineSelection, "SelBx"),
+      regressionPath = cms.FileInPath("L1ScoutingAnalyzer/L1ScoutingAnalyzer/data/jet_regression_leading_subleading.model")
     )
   else:
       process.scNtuplizer = cms.EDAnalyzer("DataNtuplizer",
@@ -80,7 +81,8 @@ if options.isData:
       jetsTag       = cms.InputTag("l1ScCaloUnpacker", "Jet"),
       eGammasTag    = cms.InputTag("l1ScCaloUnpacker", "EGamma"),
       bxSumsTag     = cms.InputTag("l1ScCaloUnpacker", "EtSum"),
-      onlineSelection = cms.untracked.bool(False)
+      onlineSelection = cms.untracked.bool(False),
+      regressionPath = cms.FileInPath("L1ScoutingAnalyzer/L1ScoutingAnalyzer/data/jet_regression_leading_subleading.model")
     )
 
 else:
