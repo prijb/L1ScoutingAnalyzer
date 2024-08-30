@@ -72,8 +72,7 @@ if options.isData:
       eGammasTag    = cms.InputTag("FinalBxSelector", "EGamma"),
       bxSumsTag     = cms.InputTag("FinalBxSelector", "EtSum"),
       onlineSelection = cms.untracked.bool(True),
-      selectedBxTag = cms.InputTag(options.onlineSelection, "SelBx"),
-      regressionPath = cms.FileInPath("L1ScoutingAnalyzer/L1ScoutingAnalyzer/data/jet_regression_leading_subleading.model")
+      selectedBxTag = cms.InputTag(options.onlineSelection, "SelBx")
     )
   else:
       process.scNtuplizer = cms.EDAnalyzer("DataNtuplizer",
@@ -81,8 +80,7 @@ if options.isData:
       jetsTag       = cms.InputTag("l1ScCaloUnpacker", "Jet"),
       eGammasTag    = cms.InputTag("l1ScCaloUnpacker", "EGamma"),
       bxSumsTag     = cms.InputTag("l1ScCaloUnpacker", "EtSum"),
-      onlineSelection = cms.untracked.bool(False),
-      regressionPath = cms.FileInPath("L1ScoutingAnalyzer/L1ScoutingAnalyzer/data/jet_regression_leading_subleading.model")
+      onlineSelection = cms.untracked.bool(False)
     )
 
 else:
@@ -96,12 +94,11 @@ else:
     eGammasTag    = cms.InputTag("caloStage2Digis", "EGamma"),
     tausTag       = cms.InputTag("caloStage2Digis", "Tau"),
     etSumsTag     = cms.InputTag("caloStage2Digis", "EtSum"),
-    recoJetsTag   = cms.InputTag("slimmedJets"),
-    recoJetsPuppiTag = cms.InputTag("slimmedJetsPuppi"),
-    recoMetTag    = cms.InputTag("slimmedMETs"),
-    recoMetPuppiTag = cms.InputTag("slimmedMETsPuppi"),
-    #regressionPath = cms.FileInPath("L1ScoutingAnalyzer/L1ScoutingAnalyzer/data/jet_regression_model_new.model")
-    regressionPath = cms.FileInPath("L1ScoutingAnalyzer/L1ScoutingAnalyzer/data/jet_regression_leading_subleading.model")
+    recoJetsTag = cms.InputTag("slimmedJetsPuppi"),
+    recoElectronsTag = cms.InputTag("slimmedElectrons"),
+    recoPhotonsTag = cms.InputTag("slimmedPhotons"),
+    recoMuonsTag = cms.InputTag("slimmedMuons"),
+    recoMetTag = cms.InputTag("slimmedMETsPuppi"),
   )
 
 process.p = cms.Path(

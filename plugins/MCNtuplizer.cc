@@ -44,9 +44,9 @@
 // Reco collections
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/PatCandidates/interface/MET.h"
-
-// Pt regression
-#include "L1ScoutingAnalyzer/L1ScoutingAnalyzer/interface/PtRegression.h"
+#include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/PatCandidates/interface/Photon.h"
 
 #include <memory>
 #include <utility>
@@ -65,8 +65,6 @@ private:
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   void beginJob() override;
   void endJob() override;
-  // Fill with regressed pT
-  void getRegressedPt(PtRegression* ptRegression, std::vector<float> &Jet_pt_regressed, std::vector<float> Jet_pt, std::vector<float> Jet_eta, std::vector<float> Jet_phi, float totalEt, float missingEt, float missingEtPhi, float totalHt, float missingHt, float missingHtPhi, int towerCount, std::vector<float> EGamma_pt, std::vector<float> EGamma_eta, std::vector<float> EGamma_phi, std::vector<float> Muon_pt, std::vector<float> Muon_eta, std::vector<float> Muon_phi);
 
   // Tokens for gen objects
   edm::EDGetTokenT<GenEventInfoProduct> genEventInfoToken_;
@@ -81,9 +79,10 @@ private:
   edm::EDGetTokenT<l1t::MuonBxCollection> muonToken_;
   // Tokens for reco objects
   edm::EDGetTokenT<pat::JetCollection> recoJetToken_;
-  edm::EDGetTokenT<pat::JetCollection> recoJetPuppiToken_;
+  edm::EDGetTokenT<pat::ElectronCollection> recoElectronToken_;
+  edm::EDGetTokenT<pat::PhotonCollection> recoPhotonToken_;
+  edm::EDGetTokenT<pat::MuonCollection> recoMuonToken_;
   edm::EDGetTokenT<pat::METCollection> recoMetToken_;
-  edm::EDGetTokenT<pat::METCollection> recoMetPuppiToken_;
 
   // Tree that contains info per bunch crossing
   TTree* tree;
@@ -118,8 +117,6 @@ private:
   //Jets
   Int_t nJet;
   vector<Float16_t> Jet_pt;
-  // Jet et is the regressed value
-  vector<Float16_t> Jet_pt_regressed;
   vector<Float16_t> Jet_eta;
   vector<Float16_t> Jet_phi;
   vector<Float16_t> Jet_e;
@@ -160,35 +157,44 @@ private:
   float totalEt, totalHt, missingEt, missingEtPhi, missingHt, missingHtPhi;
   int towerCount;
 
-  //PT regression 
-  std::string model_path;
-  edm::FileInPath regressionPath;
-  PtRegression* ptRegression;
-
-  //Reco jets
+  //Reco jets (PUPPI)
   Int_t nRecoJet;
   vector<Float16_t> RecoJet_pt;
   vector<Float16_t> RecoJet_eta;
   vector<Float16_t> RecoJet_phi;
   vector<Float16_t> RecoJet_e;
   vector<Float16_t> RecoJet_mass;
+  vector<Float16_t> RecoJet_partonFlav;
+  //ParticleNet scores
+  vector<Float16_t> RecoJet_btagPNetB;
+  vector<Float16_t> RecoJet_btagPNetCvL;
 
-  //Puppi jets
-  Int_t nRecoJetPuppi;
-  vector<Float16_t> RecoJetPuppi_pt;
-  vector<Float16_t> RecoJetPuppi_eta;
-  vector<Float16_t> RecoJetPuppi_phi;
-  vector<Float16_t> RecoJetPuppi_e;
-  vector<Float16_t> RecoJetPuppi_mass;
-  vector<Float16_t> RecoJetPuppi_partonFlav;
+  //Reco electrons
+  Int_t nRecoElectron;
+  vector<Float16_t> RecoElectron_pt;
+  vector<Float16_t> RecoElectron_eta;
+  vector<Float16_t> RecoElectron_phi;
+  vector<Float16_t> RecoElectron_e;
+  vector<Int_t> RecoElectron_charge;
+
+  //Reco photons
+  Int_t nRecoPhoton;
+  vector<Float16_t> RecoPhoton_pt;
+  vector<Float16_t> RecoPhoton_eta;
+  vector<Float16_t> RecoPhoton_phi;
+  vector<Float16_t> RecoPhoton_e;
+
+  //Reco muons
+  Int_t nRecoMuon;
+  vector<Float16_t> RecoMuon_pt;
+  vector<Float16_t> RecoMuon_eta;
+  vector<Float16_t> RecoMuon_phi;
+  vector<Float16_t> RecoMuon_e;
+  vector<Int_t> RecoMuon_charge;
 
   //Reco MET
   Float16_t RecoMet_pt;
   Float16_t RecoMet_phi;
-
-  //Puppi MET
-  Float16_t RecoMetPuppi_pt;
-  Float16_t RecoMetPuppi_phi;
 
 };
 
@@ -203,22 +209,14 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tauToken_(consumes<l1t::TauBxCollection>(iPset.getParameter<edm::InputTag>("tausTag"))),
   muonToken_(consumes<l1t::MuonBxCollection>(iPset.getParameter<edm::InputTag>("muonsTag"))),
   recoJetToken_(consumes<pat::JetCollection>(iPset.getParameter<edm::InputTag>("recoJetsTag"))),
-  recoJetPuppiToken_(consumes<pat::JetCollection>(iPset.getParameter<edm::InputTag>("recoJetsPuppiTag"))),
-  recoMetToken_(consumes<pat::METCollection>(iPset.getParameter<edm::InputTag>("recoMetTag"))),
-  recoMetPuppiToken_(consumes<pat::METCollection>(iPset.getParameter<edm::InputTag>("recoMetPuppiTag"))),
-  regressionPath(iPset.getParameter<edm::FileInPath>("regressionPath"))
+  recoElectronToken_(consumes<pat::ElectronCollection>(iPset.getParameter<edm::InputTag>("recoElectronsTag"))),
+  recoPhotonToken_(consumes<pat::PhotonCollection>(iPset.getParameter<edm::InputTag>("recoPhotonsTag"))),
+  recoMuonToken_(consumes<pat::MuonCollection>(iPset.getParameter<edm::InputTag>("recoMuonsTag"))),
+  recoMetToken_(consumes<pat::METCollection>(iPset.getParameter<edm::InputTag>("recoMetTag")))
 {
 
   // the root file service to handle the output file
   edm::Service<TFileService> fs;
-
-  //Initialize pt regression
-  //model_path = std::string("/eos/user/p/ppradeep/L1Scouting/May24v2/CMSSW_14_1_0_pre1/src/NtuplizerGenPart/L1ScoutingAnalyzer/models/jet_regression_model_linear.model");
-  //model_path = std::string("/eos/user/p/ppradeep/L1Scouting/May24v2/CMSSW_14_1_0_pre1/src/NtuplizerGenPart/L1ScoutingAnalyzer/models/jet_regression_model_new.model");
-
-  model_path = regressionPath.fullPath();
-  std::cout << "Loading model from: " << model_path << "\n";
-  ptRegression = new PtRegression(model_path);
 
   // Create the TTree
   tree = fs->make<TTree>("Events", "Events_bx");
@@ -251,7 +249,6 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   // Jets
   tree->Branch("nJet", &nJet, "nJet/I");
   tree->Branch("Jet_pt", &Jet_pt);
-  tree->Branch("Jet_pt_regressed", &Jet_pt_regressed);
   tree->Branch("Jet_eta", &Jet_eta);
   tree->Branch("Jet_phi", &Jet_phi);
   tree->Branch("Jet_e", &Jet_e);
@@ -303,98 +300,37 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("RecoJet_phi", &RecoJet_phi);
   tree->Branch("RecoJet_e", &RecoJet_e);
   tree->Branch("RecoJet_mass", &RecoJet_mass);
+  tree->Branch("RecoJet_partonFlav", &RecoJet_partonFlav);
+  tree->Branch("RecoJet_btagPNetB", &RecoJet_btagPNetB);
+  tree->Branch("RecoJet_btagPNetCvL", &RecoJet_btagPNetCvL);
 
-  // Reco jet puppi
-  tree->Branch("nRecoJetPuppi", &nRecoJetPuppi, "nRecoJetPuppi/I");
-  tree->Branch("RecoJetPuppi_pt", &RecoJetPuppi_pt);
-  tree->Branch("RecoJetPuppi_eta", &RecoJetPuppi_eta);
-  tree->Branch("RecoJetPuppi_phi", &RecoJetPuppi_phi);
-  tree->Branch("RecoJetPuppi_e", &RecoJetPuppi_e);
-  tree->Branch("RecoJetPuppi_mass", &RecoJetPuppi_mass);
-  tree->Branch("RecoJetPuppi_partonFlav", &RecoJetPuppi_partonFlav);
+  // Reco electrons
+  tree->Branch("nRecoElectron", &nRecoElectron, "nRecoElectron/I");
+  tree->Branch("RecoElectron_pt", &RecoElectron_pt);
+  tree->Branch("RecoElectron_eta", &RecoElectron_eta);
+  tree->Branch("RecoElectron_phi", &RecoElectron_phi);
+  tree->Branch("RecoElectron_e", &RecoElectron_e);
+  tree->Branch("RecoElectron_charge", &RecoElectron_charge);
 
+  // Reco photons
+  tree->Branch("nRecoPhoton", &nRecoPhoton, "nRecoPhoton/I");
+  tree->Branch("RecoPhoton_pt", &RecoPhoton_pt);
+  tree->Branch("RecoPhoton_eta", &RecoPhoton_eta);
+  tree->Branch("RecoPhoton_phi", &RecoPhoton_phi);
+  tree->Branch("RecoPhoton_e", &RecoPhoton_e);
+
+  // Reco muons
+  tree->Branch("nRecoMuon", &nRecoMuon, "nRecoMuon/I");
+  tree->Branch("RecoMuon_pt", &RecoMuon_pt);
+  tree->Branch("RecoMuon_eta", &RecoMuon_eta);
+  tree->Branch("RecoMuon_phi", &RecoMuon_phi);
+  tree->Branch("RecoMuon_e", &RecoMuon_e);
+  tree->Branch("RecoMuon_charge", &RecoMuon_charge);
+  
   // Reco MET
   tree->Branch("RecoMet_pt", &RecoMet_pt, "RecoMet_pt/F");
   tree->Branch("RecoMet_phi", &RecoMet_phi, "RecoMet_phi/F");
   
-  // Reco MET Puppi
-  tree->Branch("RecoMetPuppi_pt", &RecoMetPuppi_pt, "RecoMetPuppi_pt/F");
-  tree->Branch("RecoMetPuppi_phi", &RecoMetPuppi_phi, "RecoMetPuppi_phi/F");
-
-}
-
-void MCNtuplizer::getRegressedPt(PtRegression* ptRegression, std::vector<float> &Jet_pt_regressed, std::vector<float> Jet_pt, std::vector<float> Jet_eta, std::vector<float> Jet_phi, float totalEt, float missingEt, float missingEtPhi, float totalHt, float missingHt, float missingHtPhi, int towerCount, std::vector<float> EGamma_pt, std::vector<float> EGamma_eta, std::vector<float> EGamma_phi, std::vector<float> Muon_pt, std::vector<float> Muon_eta, std::vector<float> Muon_phi){
-  // Apply regression to L1 jets (already loaded in class initialisation)
-  // This gets called in the analyze function
-  for (UInt_t i=0; i<Jet_pt.size(); i++){
-    float regressed_pt;
-    float regressed_pt_scale;
-
-    //Jet rank variable
-    int Jet_rank = i;
-
-    //Define inputs for isolation
-    TLorentzVector EGamma_sum;
-    TLorentzVector Muon_sum;
-    EGamma_sum.SetPtEtaPhiM(0.0, 0.0, 0.0, 0.0);
-    Muon_sum.SetPtEtaPhiM(0.0, 0.0, 0.0, 0.0);
-    float Jet_relEGammaIso = 0;
-    float Jet_relMuIso = 0;
-    
-    for(UInt_t j=0; j<EGamma_pt.size(); j++){
-      TLorentzVector EGamma_vector;
-      EGamma_vector.SetPtEtaPhiM(EGamma_pt[j], EGamma_eta[j], EGamma_phi[j], 0.0);
-      float dphi = TVector2::Phi_mpi_pi(Jet_phi[i] - EGamma_phi[j]);
-      float deta = Jet_eta[i] - EGamma_eta[j];
-      float dR = std::sqrt(dphi*dphi + deta*deta);
-      if(dR < 0.4){
-        EGamma_sum += EGamma_vector;
-      }
-    }
-    for(UInt_t j=0; j<Muon_pt.size(); j++){
-      TLorentzVector Muon_vector;
-      Muon_vector.SetPtEtaPhiM(Muon_pt[j], Muon_eta[j], Muon_phi[j], 0.1055);
-      float dphi = TVector2::Phi_mpi_pi(Jet_phi[i] - Muon_phi[j]);
-      float deta = Jet_eta[i] - Muon_eta[j];
-      float dR = std::sqrt(dphi*dphi + deta*deta);
-      if(dR < 0.4){
-        Muon_sum += Muon_vector;
-      }
-    }
-
-    //Regularised variables
-    float Jet_pt_log = TMath::Log(Jet_pt[i]);
-    float totalEt_log = TMath::Log(totalEt);
-    float missingEt_log = TMath::Log(missingEt);
-    float totalHt_log = TMath::Log(totalHt);
-    float missingHt_log = TMath::Log(missingHt);
-    float towerCount_log = TMath::Log(float(towerCount));
-
-    //Get relative isolation
-    Jet_relEGammaIso = EGamma_sum.Pt() / Jet_pt[i];
-    Jet_relMuIso = Muon_sum.Pt() / Jet_pt[i];
-
-    //std::cout << "Jet pT: " << Jet_pt[i] << ", Jet pT log: " << Jet_pt_log << ", Jet relEGammaIso: " << Jet_relEGammaIso << ", Jet relMuIso: " << Jet_relMuIso << "\n";
-
-    //Define inputs for regression
-    //std::vector<float> inputs{Jet_pt_log, Jet_eta[i], Jet_phi[i], Jet_relMuIso, Jet_relEGammaIso, totalEt, missingEt, missingEtPhi, totalHt, missingHt, missingHtPhi, float(towerCount)};
-    std::vector<float> inputs{Jet_pt_log, Jet_eta[i], Jet_phi[i], float(Jet_rank), Jet_relMuIso, Jet_relEGammaIso, totalEt_log, missingEt_log, missingEtPhi, totalHt_log, missingHt_log, missingHtPhi, towerCount_log};
-
-    //Skip jets with pT > 1000 GeV
-    if(Jet_pt[i] > 1000.){
-      regressed_pt = Jet_pt[i];
-    }
-    //Skip fourth jet and beyond
-    else if(Jet_rank > 2){
-      regressed_pt = Jet_pt[i];
-    }
-    else{
-      regressed_pt_scale = ptRegression->get_regressed_pt(inputs);
-      regressed_pt = Jet_pt[i] * std::exp(regressed_pt_scale);
-      //std::cout << "Jet " << i << " pT: " << Jet_pt[i] << " Regressed target scale: " << regressed_pt_scale << " Regressed et: " << regressed_pt << "\n";
-    }
-    Jet_pt_regressed.push_back(regressed_pt);
-  }
 }
 
 
@@ -409,9 +345,10 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   edm::Handle<l1t::TauBxCollection> tausCollection;
   edm::Handle<l1t::MuonBxCollection> muonsCollection;
   edm::Handle<pat::JetCollection> recoJets;
-  edm::Handle<pat::JetCollection> recoJetsPuppi;
+  edm::Handle<pat::ElectronCollection> recoElectrons;
+  edm::Handle<pat::PhotonCollection> recoPhotons;
+  edm::Handle<pat::MuonCollection> recoMuons;
   edm::Handle<pat::METCollection> recoMet;
-  edm::Handle<pat::METCollection> recoMetPuppi;
 
   iEvent.getByToken(genEventInfoToken_, genEventInfo);
   iEvent.getByToken(genParticlesToken_, genParticles);
@@ -423,9 +360,10 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   iEvent.getByToken(tauToken_, tausCollection);
   iEvent.getByToken(muonToken_, muonsCollection);
   iEvent.getByToken(recoJetToken_, recoJets);
-  iEvent.getByToken(recoJetPuppiToken_, recoJetsPuppi);
+  iEvent.getByToken(recoElectronToken_, recoElectrons);
+  iEvent.getByToken(recoPhotonToken_, recoPhotons);
+  iEvent.getByToken(recoMuonToken_, recoMuons);
   iEvent.getByToken(recoMetToken_, recoMet);
-  iEvent.getByToken(recoMetPuppiToken_, recoMetPuppi);
 
   GenPart_pt.clear();
   GenPart_eta.clear();
@@ -458,7 +396,6 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   Muon_hwDXY.clear();
 
   Jet_pt.clear();
-  Jet_pt_regressed.clear();
   Jet_eta.clear();
   Jet_phi.clear();
   Jet_e.clear();
@@ -483,27 +420,34 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   RecoJet_phi.clear();
   RecoJet_e.clear();
   RecoJet_mass.clear();
+  RecoJet_partonFlav.clear();
+  RecoJet_btagPNetB.clear();
+  RecoJet_btagPNetCvL.clear();
 
-  RecoJetPuppi_pt.clear();
-  RecoJetPuppi_eta.clear();
-  RecoJetPuppi_phi.clear();
-  RecoJetPuppi_e.clear();
-  RecoJetPuppi_mass.clear();
-  RecoJetPuppi_partonFlav.clear();
+  RecoElectron_pt.clear();
+  RecoElectron_eta.clear();
+  RecoElectron_phi.clear();
+  RecoElectron_e.clear();
+  RecoElectron_charge.clear();
+
+  RecoPhoton_pt.clear();
+  RecoPhoton_eta.clear();
+  RecoPhoton_phi.clear();
+  RecoPhoton_e.clear();
+
+  RecoMuon_pt.clear();
+  RecoMuon_eta.clear();
+  RecoMuon_phi.clear();
+  RecoMuon_e.clear();
+  RecoMuon_charge.clear();
 
   RecoMet_pt = -999;
   RecoMet_phi = -999;
 
-  RecoMetPuppi_pt = -999;
-  RecoMetPuppi_phi = -999;
-
   //Cluster AK8 jets using jets in fastjet
   vector<fastjet::PseudoJet> FatJetInputs;
-  vector<fastjet::PseudoJet> GhostJetInputs;
   double FatJetR = 1.0;
-  double JetR = 0.4;
   fastjet::JetDefinition jet_def(fastjet::antikt_algorithm, FatJetR);
-  fastjet::JetDefinition jet_def_ghost(fastjet::antikt_algorithm, JetR);
 
   //Gen event pT hat
   genPtHat = (genEventInfo->hasBinningValues() ? genEventInfo->binningValues()[0] : 0.0);
@@ -635,68 +579,8 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
 
     //Get fat jets
     FatJetInputs.push_back(fastjet::PseudoJet(jet_vector.Px(), jet_vector.Py(), jet_vector.Pz(), jet_vector.E()));
-    //Ghost clustering (constituents)
-    fastjet::PseudoJet ghostJet(jet_vector.Px(), jet_vector.Py(), jet_vector.Pz(), jet_vector.E());
-    ghostJet.set_user_index(nJet);
-    GhostJetInputs.push_back(ghostJet);
     nJet++;
   }
-
-  /*
-  //Scan events where there is a jet without a parton match
-  if(nJet > 0){
-    if(std::find(Jet_partonFlav.begin(), Jet_partonFlav.end(), 0) != Jet_partonFlav.end()){
-      std::cout << "Event with jet without parton match" << "\n";
-      std::cout << "Jet info " << "\n";
-      for(int i = 0; i < nJet; i++){
-        std::cout << "Jet " << i << " pT: " << Jet_pt[i] << " eta: " << Jet_eta[i] << " phi: " << Jet_phi[i] << " partonFlav: " << Jet_partonFlav[i] << "\n";
-      }
-      std::cout << "-------------------------" << "\n";
-      std::cout << "Gen parton info " << "\n";
-      for(int i = 0; i < nGenPart; i++){
-        //Skip if not a quark/EG/Mu
-        if((std::abs(GenPart_pdgId[i]) > 5) && (GenPart_pdgId[i]!=22) && (GenPart_pdgId[i]!=21) && (std::abs(GenPart_pdgId[i]) != 11) && (std::abs(GenPart_pdgId[i]) != 13)) continue;
-        std::cout << "Gen parton " << i << " pT: " << GenPart_pt[i] << " eta: " << GenPart_eta[i] << " phi: " << GenPart_phi[i] << " pdgId: " << GenPart_pdgId[i] << "\n";
-      }
-      std::cout << "-------------------------" << "\n";
-      std::cout << "" << "\n";
-    }
-  }
-  */
-
-  
-  //Add gen particles to ghost jet inputs
-  if(genParticles.isValid()){
-    int nGenGhost = 0;
-    for (reco::GenParticleCollection::const_iterator genParticle = genParticles->begin(); genParticle != genParticles->end(); genParticle++){
-      TLorentzVector gen_vector;
-      gen_vector.SetPtEtaPhiM(genParticle->pt(), genParticle->eta(), genParticle->phi(), genParticle->mass());
-      fastjet::PseudoJet ghostJet(gen_vector.Px(), gen_vector.Py(), gen_vector.Pz(), gen_vector.E());
-      //ghostJet.set_user_index(nJet+nGenGhost);
-      ghostJet *= 1e-18;
-      GhostJetInputs.push_back(ghostJet);
-      //if (nGenGhost > 5) break;
-      nGenGhost++;
-    }
-  }
-
-  /*
-  std::cout << "Number of reco jet inputs: " << nJet << "\n";
-  std::cout << "Number of reclustered jet inputs: " << GhostJetInputs.size() << "\n";
-
-  std::cout << "Number of reclustered jet inputs: " << GhostJetInputs.size() << "\n";
-
-  //Recluster, match to reco and if matched, check for parton flavour
-  fastjet::ClusterSequence cs_ghost(GhostJetInputs, jet_def_ghost);
-  std::cout << "Clustering done" << "\n";
-  vector<fastjet::PseudoJet> GhostJets = fastjet::sorted_by_pt(cs_ghost.inclusive_jets());
-
-  //Check size
-  std::cout << "Jet clustering done: " << "\n";
-  std::cout << "Starting jets: " << nJet << "\n";
-  std::cout << "Reclustered jets: " << GhostJets.size() << "\n";
-  */
-
 
   //Cluster and store fat jets
   fastjet::ClusterSequence cs(FatJetInputs, jet_def);
@@ -796,122 +680,22 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   nRecoJet = 0;
   if(recoJets.isValid()){
     for (pat::JetCollection::const_iterator recoJet = recoJets->begin(); recoJet != recoJets->end(); recoJet++){
-      if(recoJet->pt() < 10) continue;
+      //if(recoJet->pt() < 10) continue;
       RecoJet_pt.push_back(recoJet->pt());
       RecoJet_eta.push_back(recoJet->eta());
       RecoJet_phi.push_back(recoJet->phi());
       RecoJet_e.push_back(recoJet->energy());
       RecoJet_mass.push_back(recoJet->mass());
-      nRecoJet++;
-    }
-  }
 
-  // Apply regression to L1 jets (already loaded in class initialisation)
-  //auto ptRegression = std::make_unique<PtRegression>(model_path);
-
-  /*
-  //Only jet variables and event level sums
-  for (UInt_t i=0; i < Jet_pt.size(); i++){
-    float regressed_pt;
-    float regressed_pt_scale;
-    std::vector<float> inputs{Jet_pt[i], Jet_eta[i], Jet_phi[i], Jet_e[i], totalEt, missingEt, missingEtPhi, totalHt, missingHt, missingHtPhi, float(towerCount)};
-    // Skip jets with pT < 30 and > 1000 GeV
-    //if(Jet_pt[i] < 30. || Jet_pt[i] > 1000.){
-    if(Jet_pt[i] > 1000.){
-      regressed_pt = Jet_pt[i];
-    }
-    else{
-      regressed_pt_scale = ptRegression->get_regressed_pt(inputs);
-      regressed_pt = Jet_pt[i] * regressed_pt_scale;
-      std::cout << "Jet " << i << " pT: " << Jet_pt[i] << " Regressed scale: " << regressed_pt_scale << " Regressed et: " << regressed_pt << "\n";
-    }
-    Jet_pt_regressed.push_back(regressed_pt);
-  }
-  */
-  
-  /*
-  //Using jet, egamma, muon and event sum information
-  for (UInt_t i=0; i<Jet_pt.size(); i++){
-    float regressed_pt;
-    float regressed_pt_scale;
-
-    //Define inputs for isolation
-    TLorentzVector EGamma_sum;
-    TLorentzVector Muon_sum;
-    EGamma_sum.SetPtEtaPhiM(0.0, 0.0, 0.0, 0.0);
-    Muon_sum.SetPtEtaPhiM(0.0, 0.0, 0.0, 0.0);
-    float Jet_relEGammaIso = 0;
-    float Jet_relMuIso = 0;
-    
-    for(UInt_t j=0; j<EGamma_pt.size(); j++){
-      TLorentzVector EGamma_vector;
-      EGamma_vector.SetPtEtaPhiM(EGamma_pt[j], EGamma_eta[j], EGamma_phi[j], 0.0);
-      float dphi = TVector2::Phi_mpi_pi(Jet_phi[i] - EGamma_phi[j]);
-      float deta = Jet_eta[i] - EGamma_eta[j];
-      float dR = std::sqrt(dphi*dphi + deta*deta);
-      if(dR < 0.4){
-        EGamma_sum += EGamma_vector;
-      }
-    }
-    for(UInt_t j=0; j<Muon_pt.size(); j++){
-      TLorentzVector Muon_vector;
-      Muon_vector.SetPtEtaPhiM(Muon_pt[j], Muon_eta[j], Muon_phi[j], 0.1055);
-      float dphi = TVector2::Phi_mpi_pi(Jet_phi[i] - Muon_phi[j]);
-      float deta = Jet_eta[i] - Muon_eta[j];
-      float dR = std::sqrt(dphi*dphi + deta*deta);
-      if(dR < 0.4){
-        Muon_sum += Muon_vector;
-      }
-    }
-
-    float Jet_pt_log = TMath::Log(Jet_pt[i]);
-
-    //Get relative isolation
-    Jet_relEGammaIso = EGamma_sum.Pt() / Jet_pt[i];
-    Jet_relMuIso = Muon_sum.Pt() / Jet_pt[i];
-
-    //std::cout << "Jet pT: " << Jet_pt[i] << ", Jet pT log: " << Jet_pt_log << ", Jet relEGammaIso: " << Jet_relEGammaIso << ", Jet relMuIso: " << Jet_relMuIso << "\n";
-
-    //Define inputs for regression
-    std::vector<float> inputs{Jet_pt_log, Jet_eta[i], Jet_phi[i], Jet_relMuIso, Jet_relEGammaIso, totalEt, missingEt, missingEtPhi, totalHt, missingHt, missingHtPhi, float(towerCount)};
-
-    //Skip jets with pT > 1000 GeV
-    if(Jet_pt[i] > 1000.){
-      regressed_pt = Jet_pt[i];
-    }
-    else{
-      regressed_pt_scale = ptRegression->get_regressed_pt(inputs);
-      regressed_pt = Jet_pt[i] * std::exp(regressed_pt_scale);
-      //std::cout << "Jet " << i << " pT: " << Jet_pt[i] << " Regressed target scale: " << regressed_pt_scale << " Regressed et: " << regressed_pt << "\n";
-    }
-    Jet_pt_regressed.push_back(regressed_pt);
-  }
-  */
-  
-  //pT regression function call
-  getRegressedPt(ptRegression, Jet_pt_regressed, Jet_pt, Jet_eta, Jet_phi, totalEt, missingEt, missingEtPhi, totalHt, missingHt, missingHtPhi, towerCount, EGamma_pt, EGamma_eta, EGamma_phi, Muon_pt, Muon_eta, Muon_phi);
-  
-
-
-  nRecoJetPuppi = 0;
-  if(recoJetsPuppi.isValid()){
-    for (pat::JetCollection::const_iterator recoJetPuppi = recoJetsPuppi->begin(); recoJetPuppi != recoJetsPuppi->end(); recoJetPuppi++){
-      //if(recoJetPuppi->pt() < 10) continue;
-      RecoJetPuppi_pt.push_back(recoJetPuppi->pt());
-      RecoJetPuppi_eta.push_back(recoJetPuppi->eta());
-      RecoJetPuppi_phi.push_back(recoJetPuppi->phi());
-      RecoJetPuppi_e.push_back(recoJetPuppi->energy());
-      RecoJetPuppi_mass.push_back(recoJetPuppi->mass());
-
-      //Simple dR matching with gen partons (for Puppi jets)
+      //Simple dR matching with gen partons (for  jets)
       int partonFlav = 0;
       std::vector<int> partonFlavs{};
       std::vector<float> partondRs{};
       for(int i = 0; i < nGenPart; i++){
         //Ignore if not a quark
         if((std::abs(GenPart_pdgId[i]) > 5) && (GenPart_pdgId[i]!=21)) continue;
-        float dphi = TVector2::Phi_mpi_pi(recoJetPuppi->phi() - GenPart_phi[i]);
-        float deta = recoJetPuppi->eta() - GenPart_eta[i];
+        float dphi = TVector2::Phi_mpi_pi(recoJet->phi() - GenPart_phi[i]);
+        float deta = recoJet->eta() - GenPart_eta[i];
         float dR = std::sqrt(dphi*dphi + deta*deta);
         if(dR < 0.4){
           partonFlavs.push_back(GenPart_pdgId[i]);
@@ -939,19 +723,71 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
         }
         //std::cout << "Jet " << nJet << " matched to parton with flavour " << partonFlav << "\n";
       }
-      RecoJetPuppi_partonFlav.push_back(partonFlav);
-      nRecoJetPuppi++;
+      RecoJet_partonFlav.push_back(partonFlav);
+      float pNetbDisc = -1;
+      float pNetcDisc = -1;
+      if(recoJet->bDiscriminator("pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:BvsAll") > 0.){
+        pNetbDisc = recoJet->bDiscriminator("pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:BvsAll");
+      }
+      if(recoJet->bDiscriminator("pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsL") > 0.){
+        pNetcDisc = recoJet->bDiscriminator("pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsL");
+      }
+      RecoJet_btagPNetB.push_back(pNetbDisc);
+      RecoJet_btagPNetCvL.push_back(pNetcDisc);
+      /*
+      //Testing b jet discriminator score
+      float pNetbDisc = recoJet->bDiscriminator("pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:BvsAll");
+      float pNetcDisc = recoJet->bDiscriminator("pfParticleNetFromMiniAODAK4PuppiCentralDiscriminatorsJetTags:CvsL");
+      if(pNetbDisc > 0. || pNetcDisc > 0.){
+        std::cout << "Reco jet: " << nRecoJet << "\n";
+        std::cout << "Genmatched parton flavour " << partonFlav << "\n";
+        std::cout << "Particle Net b vs udscg " << pNetbDisc << "\n"; 
+        std::cout << "Particle Net c vs udsg " << pNetcDisc << "\n";
+        std::cout << "\n";
+      }
+      */
+      nRecoJet++;
+    }
+  }
+
+  nRecoElectron = 0;
+  if(recoElectrons.isValid()){
+    for (pat::ElectronCollection::const_iterator recoElectron = recoElectrons->begin(); recoElectron != recoElectrons->end(); recoElectron++){
+      RecoElectron_pt.push_back(recoElectron->pt());
+      RecoElectron_eta.push_back(recoElectron->eta());
+      RecoElectron_phi.push_back(recoElectron->phi());
+      RecoElectron_e.push_back(recoElectron->energy());
+      RecoElectron_charge.push_back(recoElectron->charge());
+      nRecoElectron++;
+    }
+  }
+
+  nRecoPhoton = 0;
+  if(recoPhotons.isValid()){
+    for (pat::PhotonCollection::const_iterator recoPhoton = recoPhotons->begin(); recoPhoton != recoPhotons->end(); recoPhoton++){
+      RecoPhoton_pt.push_back(recoPhoton->pt());
+      RecoPhoton_eta.push_back(recoPhoton->eta());
+      RecoPhoton_phi.push_back(recoPhoton->phi());
+      RecoPhoton_e.push_back(recoPhoton->energy());
+      nRecoPhoton++;
+    }
+  }
+
+  nRecoMuon = 0;
+  if(recoMuons.isValid()){
+    for (pat::MuonCollection::const_iterator recoMuon = recoMuons->begin(); recoMuon != recoMuons->end(); recoMuon++){
+      RecoMuon_pt.push_back(recoMuon->pt());
+      RecoMuon_eta.push_back(recoMuon->eta());
+      RecoMuon_phi.push_back(recoMuon->phi());
+      RecoMuon_e.push_back(recoMuon->energy());
+      RecoMuon_charge.push_back(recoMuon->charge());
+      nRecoMuon++;
     }
   }
 
   if(recoMet.isValid()){
     RecoMet_pt = recoMet->begin()->pt();
     RecoMet_phi = recoMet->begin()->phi();
-  }
-  
-  if(recoMetPuppi.isValid()){
-    RecoMetPuppi_pt = recoMetPuppi->begin()->pt();
-    RecoMetPuppi_phi = recoMetPuppi->begin()->phi();
   }
 
   tree->Fill();

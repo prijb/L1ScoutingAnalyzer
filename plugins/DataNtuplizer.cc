@@ -41,9 +41,6 @@
 #include <fastjet/PseudoJet.hh>
 #include <fastjet/ClusterSequence.hh>
 
-// Pt regression
-#include "L1ScoutingAnalyzer/L1ScoutingAnalyzer/interface/PtRegression.h"
-
 #include <memory>
 #include <utility>
 #include <vector>
@@ -82,9 +79,6 @@ private:
     std::vector<unsigned> &filledBxVec
   );
 
-  // Fill with regressed pT
-  void getRegressedPt(std::unique_ptr<PtRegression> &ptRegression, std::vector<float> &Jet_pt_regressed, std::vector<float> Jet_pt, std::vector<float> Jet_eta, std::vector<float> Jet_phi, float totalEt, float missingEt, float missingEtPhi, float totalHt, float missingHt, float missingHtPhi, int towerCount, std::vector<float> EGamma_pt, std::vector<float> EGamma_eta, std::vector<float> EGamma_phi, std::vector<float> Muon_pt, std::vector<float> Muon_eta, std::vector<float> Muon_phi);
-
   // tokens for scouting data
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::Muon>> muonsTokenData_;
   edm::EDGetTokenT<OrbitCollection<l1ScoutingRun3::Jet>> jetsTokenData_;
@@ -107,7 +101,6 @@ private:
   //Jets
   Int_t nJet;
   vector<Float16_t> Jet_pt;
-  vector<Float16_t> Jet_pt_regressed;
   vector<Float16_t> Jet_eta;
   vector<Float16_t> Jet_phi;
   vector<Float16_t> Jet_e;
@@ -146,30 +139,15 @@ private:
   //et Sums
   float totalEt, totalHt, missingEt, missingEtPhi, missingHt, missingHtPhi;
   int towerCount;
-
-  //PT regression 
-  std::string model_path;
-  edm::FileInPath regressionPath;
-  //PtRegression* ptRegression;
-  std::unique_ptr<PtRegression> ptRegression;
-
  };
 
 DataNtuplizer::DataNtuplizer(const edm::ParameterSet& iPSet)
   : muonsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("muonsTag"))),
     jetsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("jetsTag"))),
     eGammasTokenData_(consumes(iPSet.getParameter<edm::InputTag>("eGammasTag"))),
-    bxSumsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("bxSumsTag"))),
-    onlineSelection_(iPSet.getUntrackedParameter<bool>("onlineSelection")),
-    regressionPath(iPSet.getParameter<edm::FileInPath>("regressionPath"))
+    bxSumsTokenData_(consumes(iPSet.getParameter<edm::InputTag>("bxSumsTag")))
   {
   
-  // Load regression model
-  model_path = regressionPath.fullPath();
-  std::cout << "Loading model from: " << model_path << "\n";
-  //ptRegression = new PtRegression(model_path);
-  ptRegression = std::make_unique<PtRegression>(model_path);
-
   // the root file service to handle the output file
   edm::Service<TFileService> fs;
 
@@ -181,7 +159,6 @@ DataNtuplizer::DataNtuplizer(const edm::ParameterSet& iPSet)
   tree->Branch("bx", &bxid, "bx/I");
   tree->Branch("nJet", &nJet, "nJet/I");
   tree->Branch("Jet_pt", &Jet_pt);
-  tree->Branch("Jet_pt_regressed", &Jet_pt_regressed);
   tree->Branch("Jet_eta", &Jet_eta);
   tree->Branch("Jet_phi", &Jet_phi);
   tree->Branch("Jet_e", &Jet_e);
@@ -239,100 +216,6 @@ DataNtuplizer::DataNtuplizer(const edm::ParameterSet& iPSet)
     selectedBxToken_ = consumes<std::vector<unsigned>>(iPSet.getParameter<edm::InputTag>("selectedBxTag"));
   }
 
-}
-
-void DataNtuplizer::getRegressedPt(std::unique_ptr<PtRegression> &ptRegression, std::vector<float> &Jet_pt_regressed, std::vector<float> Jet_pt, std::vector<float> Jet_eta, std::vector<float> Jet_phi, float totalEt, float missingEt, float missingEtPhi, float totalHt, float missingHt, float missingHtPhi, int towerCount, std::vector<float> EGamma_pt, std::vector<float> EGamma_eta, std::vector<float> EGamma_phi, std::vector<float> Muon_pt, std::vector<float> Muon_eta, std::vector<float> Muon_phi){
-  // Apply regression to L1 jets (already loaded in class initialisation)
-  // This gets called in the analyze function
-  for (UInt_t i=0; i<Jet_pt.size(); i++){
-    float regressed_pt;
-    float regressed_pt_scale;
-
-    //Jet rank variable
-    int Jet_rank = i;
-
-    //Define inputs for isolation
-    TLorentzVector EGamma_sum;
-    TLorentzVector Muon_sum;
-    EGamma_sum.SetPtEtaPhiM(0.0, 0.0, 0.0, 0.0);
-    Muon_sum.SetPtEtaPhiM(0.0, 0.0, 0.0, 0.0);
-    float Jet_relEGammaIso = 0;
-    float Jet_relMuIso = 0;
-    
-    std::cout << "Producing isolation variables for jet " << "\n";
-
-    for(UInt_t j=0; j<EGamma_pt.size(); j++){
-      TLorentzVector EGamma_vector;
-      EGamma_vector.SetPtEtaPhiM(EGamma_pt[j], EGamma_eta[j], EGamma_phi[j], 0.0);
-      float dphi = TVector2::Phi_mpi_pi(Jet_phi[i] - EGamma_phi[j]);
-      float deta = Jet_eta[i] - EGamma_eta[j];
-      float dR = std::sqrt(dphi*dphi + deta*deta);
-      if(dR < 0.4){
-        EGamma_sum += EGamma_vector;
-      }
-    }
-    for(UInt_t j=0; j<Muon_pt.size(); j++){
-      TLorentzVector Muon_vector;
-      Muon_vector.SetPtEtaPhiM(Muon_pt[j], Muon_eta[j], Muon_phi[j], 0.1055);
-      float dphi = TVector2::Phi_mpi_pi(Jet_phi[i] - Muon_phi[j]);
-      float deta = Jet_eta[i] - Muon_eta[j];
-      float dR = std::sqrt(dphi*dphi + deta*deta);
-      if(dR < 0.4){
-        Muon_sum += Muon_vector;
-      }
-    }
-
-    std::cout << "Regularising variables" << "\n";
-
-    //Regularised variables
-    float Jet_pt_log = TMath::Log(Jet_pt[i]);
-    float totalEt_log = TMath::Log(totalEt);
-    float missingEt_log = TMath::Log(missingEt);
-    float totalHt_log = TMath::Log(totalHt);
-    float missingHt_log = TMath::Log(missingHt);
-    float towerCount_log = TMath::Log(float(towerCount));
-
-    std::cout << "Getting relative isolation" << "\n";
-
-    //Get relative isolation
-    Jet_relEGammaIso = EGamma_sum.Pt() / Jet_pt[i];
-    Jet_relMuIso = Muon_sum.Pt() / Jet_pt[i];
-
-    //std::cout << "Jet pT: " << Jet_pt[i] << ", Jet pT log: " << Jet_pt_log << ", Jet relEGammaIso: " << Jet_relEGammaIso << ", Jet relMuIso: " << Jet_relMuIso << "\n";
-
-    //Define inputs for regression
-    //std::vector<float> inputs{Jet_pt_log, Jet_eta[i], Jet_phi[i], Jet_relMuIso, Jet_relEGammaIso, totalEt, missingEt, missingEtPhi, totalHt, missingHt, missingHtPhi, float(towerCount)};
-    std::cout << "Defining input vector" << "\n";
-
-    std::vector<float> inputs{Jet_pt_log, Jet_eta[i], Jet_phi[i], float(Jet_rank), Jet_relMuIso, Jet_relEGammaIso, totalEt_log, missingEt_log, missingEtPhi, totalHt_log, missingHt_log, missingHtPhi, towerCount_log};
-
-    std::cout << "Getting regressed pT" << "\n";
-
-    //Skip jets with pT > 1000 GeV
-    if(Jet_pt[i] > 1000.){
-      regressed_pt = Jet_pt[i];
-    }
-    //Skip fourth jet and beyond
-    else if(Jet_rank > 2){
-      regressed_pt = Jet_pt[i];
-    }
-    else{
-      std::cout << "Checking pointer validity" << "\n";
-      if(!ptRegression){
-        std::cout << "Regression pointer is null" << "\n";
-      }
-      else{
-        std::cout << "Regression pointer is not null" << "\n";
-      }
-      std::cout << "Calculating regressed pT" << "\n";
-      regressed_pt_scale = ptRegression->get_regressed_pt(inputs);
-      regressed_pt = Jet_pt[i] * std::exp(regressed_pt_scale);
-      //std::cout << "Jet " << i << " pT: " << Jet_pt[i] << " Regressed target scale: " << regressed_pt_scale << " Regressed et: " << regressed_pt << "\n";
-    }
-
-    std::cout << "Pushing back regressed pT" << "\n";
-    Jet_pt_regressed.push_back(regressed_pt);
-  }
 }
 
 void DataNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&) {
@@ -405,7 +288,6 @@ void DataNtuplizer::processDataBx(
   Muon_hwDXY.clear();
 
   Jet_pt.clear();
-  Jet_pt_regressed.clear();
   Jet_eta.clear();
   Jet_phi.clear();
   Jet_e.clear();
@@ -513,11 +395,6 @@ void DataNtuplizer::processDataBx(
     towerCount = l1sum.hwPt();
   }
 
-  //pT regression function call
-  if(nJet>1){
-    //getRegressedPt(ptRegression, Jet_pt_regressed, Jet_pt, Jet_eta, Jet_phi, totalEt, missingEt, missingEtPhi, totalHt, missingHt, missingHtPhi, towerCount, EGamma_pt, EGamma_eta, EGamma_phi, Muon_pt, Muon_eta, Muon_phi);
-  }
-
   //Processing with filled elements (jet-muon matching etc)
   if (nMuon==2){
     math::PtEtaPhiMLorentzVector mu1(Muon_pt[0], Muon_eta[0], Muon_phi[0], 0.1055);
@@ -529,8 +406,8 @@ void DataNtuplizer::processDataBx(
   }
 
   if (nJet==2){
-    math::PtEtaPhiMLorentzVector jet1(Jet_pt[0], Jet_eta[0], Jet_phi[0], Jet_e[0]);
-    math::PtEtaPhiMLorentzVector jet2(Jet_pt[1], Jet_eta[1], Jet_phi[1], Jet_e[1]);
+    math::PtEtaPhiMLorentzVector jet1(Jet_pt[0], Jet_eta[0], Jet_phi[0], 0.);
+    math::PtEtaPhiMLorentzVector jet2(Jet_pt[1], Jet_eta[1], Jet_phi[1], 0.);
     m_1dhist_["DijetMass"]->Fill((jet1+jet2).M());
     
     //Matching jets with muons
@@ -538,7 +415,7 @@ void DataNtuplizer::processDataBx(
     if (nMuon>1){
       for (int i=0; i<nMuon; i++){
         math::PtEtaPhiMLorentzVector mu(Muon_pt[i], Muon_eta[i], Muon_phi[i], 0.1055);
-        if(reco::deltaR(mu, jet1)<0.3 && reco::deltaR(mu, jet2)<0.3){
+        if(reco::deltaR(mu, jet1)<0.4 && reco::deltaR(mu, jet2)<0.4){
           isMuMatched = true;
           break;
         }

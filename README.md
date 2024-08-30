@@ -54,9 +54,9 @@ Members of `l1t::Jet`, `l1t::EGamma`, `l1t::EtSum`, `l1t::Tau` and `l1t::Muon` o
 
 ```
 # create a project area
-cmsrel CMSSW_14_1_0_pre1 
+cmsrel CMSSW_14_1_0_pre6 
 
-cd CMSSW_14_1_0_pre1/src
+cd CMSSW_14_1_0_pre6/src
 cmsenv
 
 mkdir L1ScoutingAnalyzer
@@ -79,6 +79,5 @@ cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/
 # process MC
 cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/mc/Run3Winter24MiniAOD/QCD_PT-30to50_TuneCP5_13p6TeV_pythia8/MINIAODSIM/133X_mcRun3_2024_realistic_v8-v2/50000/021484cd-8bb2-499a-815b-290ea9972003.root outFile=ntuple_mc.root numOrbits=10000 isData=False
 ```
-## Pt Regression
-Jet Pt regression implemented as a separate plugin that is called in the analyzer. The `data` folder stores pre-trained regression models which are compatible with batch jobs
+
 
