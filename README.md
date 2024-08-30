@@ -1,4 +1,4 @@
-# Example L1Trigger Scouting Analyzer
+# Example of L1Trigger Scouting Analyzers
 
 ## Demo Analyzer
 Simple example of an `EDAnalyzer` used to analyze L1T Scouting data.
@@ -14,6 +14,29 @@ In addition, the ROOT file contains an NTuple that stores the Muon and Jet colle
 Data collected during 2023 available in DAS, more info in [this](https://indico.cern.ch/event/1381539/contributions/5806977/attachments/2799342/4883215/L1scoutingdataavailability.pdf) slide.
 A new data tier `L1SCOUT` will to be used for 2024 data.
 
+Example of an `EDAnalyzer` creating a ROOT tree with L1T scouting data.
+Along with the standard `L1Scouting` stream, containing all the BX in a given orbit, the plugin can be used to process data selected by the an online selection, available in the `L1ScoutingSelection` stream introduced from run `380321` (Era `2024D`).
+The output file can be read, for example, with `uproot`:
+```
+orbit: uint32,
+bx: uint32,
+nJets: int32,
+jetEt: var * float32,
+jetEta: var * float32,
+jetPhi: var * float32,
+nEGammas: int32,
+egEt: var * float32,
+egEta: var * float32,
+egPhi: var * float32,
+egIso: var * int32,
+...
+```
+
+## L1 Scouting data
+
+### 2023
+Data collected during 2023 available in DAS, more info in [this](https://indico.cern.ch/event/1381539/contributions/5806977/attachments/2799342/4883215/L1scoutingdataavailability.pdf) slide.
+DAS query:
 ```
 file dataset=/L1ScoutUGMTCALO/Run2023C-v1/RAW run=368636
 ```
@@ -50,8 +73,29 @@ l1t::EGamma l1egamma = getL1TEGamma(scEGamma);
 
 Members of `l1t::Jet`, `l1t::EGamma`, `l1t::EtSum`, `l1t::Tau` and `l1t::Muon` objects can be found [here](https://github.com/cms-sw/cmssw/tree/master/DataFormats/L1Trigger/interface).
 
+### 2024
+
+2024 data have the same data format as 2023, but two streams are available: 
+* `StreamL1Scouting`: contains all BX in an orbit but prescaled, i.e. only a fraction of the full orbits is kept.
+* `StreamL1ScoutingSelection`: constains a selection of BX in an orbit (e.g. BX with at least two jets), but for all the orbits.
+
+Both are available on DAS, on two dataset named as the streams and `L1SCOUT` data tier.
+For example, the following queries can be used to retrieve the list of files for a specific run
+
+```
+file dataset=/L1Scouting/Run2024D-v1/L1SCOUT run=380346
+```
+and
+```
+file dataset=/L1ScoutingSelection/Run2024D-v1/L1SCOUT run=380346
+```
+
+The main difference compared to 2023 is that new calorimeter data is being collected without any imposed hardware threshold.
+Hence, all Jets, E/Gammas and Taus are available in the `L1ScoutingDataset`. 
+
 ## Instructions for the demo
 
+### Demo Analyzer
 ```
 # create a project area
 cmsrel CMSSW_14_1_0_pre6 
@@ -79,5 +123,4 @@ cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/
 # process MC
 cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/mc/Run3Winter24MiniAOD/QCD_PT-30to50_TuneCP5_13p6TeV_pythia8/MINIAODSIM/133X_mcRun3_2024_realistic_v8-v2/50000/021484cd-8bb2-499a-815b-290ea9972003.root outFile=ntuple_mc.root numOrbits=10000 isData=False
 ```
-
 
