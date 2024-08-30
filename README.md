@@ -8,7 +8,11 @@ The `DemoAnalyzer` processes BX containing at least a muon and produces a ROOT f
 3. Jet multiplicity for BX where at least a muon is present
 4. The BX occupancy such that at least a muon is present and there are no jets in the previous BX (example of how to use objects from a different BX)
 
-## Ntuplizer
+In addition, the ROOT file contains an NTuple that stores the Muon and Jet collections (pt, eta, phi etc.) per bunch crossing. Bunch crossings are chosen based on Muon/Jet multiplicity and can be specified in the `EDAnalyzer`
+
+## L1 Scouting data
+Data collected during 2023 available in DAS, more info in [this](https://indico.cern.ch/event/1381539/contributions/5806977/attachments/2799342/4883215/L1scoutingdataavailability.pdf) slide.
+A new data tier `L1SCOUT` will to be used for 2024 data.
 
 Example of an `EDAnalyzer` creating a ROOT tree with L1T scouting data.
 Along with the standard `L1Scouting` stream, containing all the BX in a given orbit, the plugin can be used to process data selected by the an online selection, available in the `L1ScoutingSelection` stream introduced from run `380321` (Era `2024D`).
@@ -94,37 +98,29 @@ Hence, all Jets, E/Gammas and Taus are available in the `L1ScoutingDataset`.
 ### Demo Analyzer
 ```
 # create a project area
-# Any pre-release of (14_1_X) >14_1_0_pre1 can be used, or >14_0_5 for the 14_0_X release cycle
-cmsrel CMSSW_14_1_0_pre1 
+cmsrel CMSSW_14_1_0_pre6 
 
-cd CMSSW_14_1_0_pre1/src
+cd CMSSW_14_1_0_pre6/src
 cmsenv
 
-mkdir Demo
-cd Demo
+mkdir L1ScoutingAnalyzer
+cd L1ScoutingAnalyzer
 
-git clone https://github.com/Mmiglio/L1ScoutingAnalyzer DemoAnalyzer
+git clone https://github.com/prijb/L1ScoutingAnalyzer.git L1ScoutingAnalyzer
 
-cd DemoAnalyzer
+cd L1ScoutingAnalyzer
 scram b
 
 # init proxy
 voms-proxy-init --voms cms
 
-# process 10k orbits
-cmsRun python/demo_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2023C/L1ScoutUGMTCALO/RAW/v1/000/368/636/00000/run368636_ls0400.root outFile=test.root numOrbits=10000
+# process Data (w/o selections)
+cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2024D/L1Scouting/L1SCOUT/v1/000/380/346/00000/ee9f4dfe-be97-4d5d-959f-1140b9ec2894.root outFile=ntuple_fullOrbit.root numOrbits=10 isData=True
+
+# process Data (w selections)
+cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2024D/L1ScoutingSelection/L1SCOUT/v1/000/380/346/00000/7c9d89df-449a-47a7-9ce7-958b55185c82.root outFile=ntuple_dijet.root numOrbits=10 onlineSelection=Dijet30Barrel isData=True
+
+# process MC
+cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/mc/Run3Winter24MiniAOD/QCD_PT-30to50_TuneCP5_13p6TeV_pythia8/MINIAODSIM/133X_mcRun3_2024_realistic_v8-v2/50000/021484cd-8bb2-499a-815b-290ea9972003.root outFile=ntuple_mc.root numOrbits=10000 isData=False
 ```
 
-### Ntuplizer
-```
-# Follow the steps used to setup the Demo Analyzer example project area
-
-# ntuplize BX selected by the Dijet30Barrel selection for 10 orbits 
-# (from the L1ScoutingSelection dataset)
-cmsRun python/ntuplizer_cfg.py inFile=inFile=root://cms-xrd-global.cern.ch//store/data/Run2024D/L1ScoutingSelection/L1SCOUT/v1/000/380/346/00000/7c9d
-89df-449a-47a7-9ce7-958b55185c82.root outFile=ntuple_dijet.root numOrbits=10 onlineSelection=Dijet30Barrel
-
-# ntuplize all BX for a prescaled fraction of orbits (10)
-# (from the L1Scouting dataset)
-cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2024D/L1Scouting/L1SCOUT/v1/000/380/346/00000/ee9f4dfe-be97-4d5d-959f-1140b9ec2894.root outFile=ntuple_fullOrbit.root numOrbits=10
-```
