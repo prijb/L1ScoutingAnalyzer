@@ -67,10 +67,10 @@ if not options.isData:
 if options.isData:
   if options.onlineSelection != "":
     process.scNtuplizer = cms.EDAnalyzer("DataNtuplizer",
-      muonsTag      = cms.InputTag("FinalBxSelector", "Muon"),
-      jetsTag       = cms.InputTag("FinalBxSelector", "Jet"),
-      eGammasTag    = cms.InputTag("FinalBxSelector", "EGamma"),
-      bxSumsTag     = cms.InputTag("FinalBxSelector", "EtSum"),
+      muonsTag      = cms.InputTag("FinalBxSelectorMuon", "Muon"),
+      jetsTag       = cms.InputTag("FinalBxSelectorJet", "Jet"),
+      eGammasTag    = cms.InputTag("FinalBxSelectorEGamma", "EGamma"),
+      bxSumsTag     = cms.InputTag("FinalBxSelectorBxSums", "EtSum"),
       onlineSelection = cms.untracked.bool(True),
       selectedBxTag = cms.InputTag(options.onlineSelection, "SelBx")
     )

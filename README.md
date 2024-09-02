@@ -115,10 +115,10 @@ scram b
 voms-proxy-init --voms cms
 
 # process Data (w/o selections)
-cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2024D/L1Scouting/L1SCOUT/v1/000/380/346/00000/ee9f4dfe-be97-4d5d-959f-1140b9ec2894.root outFile=ntuple_fullOrbit.root numOrbits=10 isData=True
+cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2024G/L1Scouting/L1SCOUT/v1/000/383/996/00000/6351657c-d721-465a-a3a2-b03e72298788.root outFile=ntuple_fullOrbit.root numOrbits=10 isData=True
 
 # process Data (w selections)
-cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2024D/L1ScoutingSelection/L1SCOUT/v1/000/380/346/00000/7c9d89df-449a-47a7-9ce7-958b55185c82.root outFile=ntuple_dijet.root numOrbits=10 onlineSelection=Dijet30Barrel isData=True
+cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/data/Run2024G/L1ScoutingSelection/L1SCOUT/v1/000/383/996/00000/b7da89f4-5893-417d-920b-f080289de01f.root outFile=ntuple_dijet.root numOrbits=10 onlineSelection=DijetEt30 isData=True
 
 # process MC
 cmsRun python/ntuplizer_cfg.py inFile=root://cms-xrd-global.cern.ch//store/mc/Run3Winter24MiniAOD/QCD_PT-30to50_TuneCP5_13p6TeV_pythia8/MINIAODSIM/133X_mcRun3_2024_realistic_v8-v2/50000/021484cd-8bb2-499a-815b-290ea9972003.root outFile=ntuple_mc.root numOrbits=10000 isData=False
