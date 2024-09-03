@@ -286,6 +286,7 @@ void DataNtuplizer::processDataBx(
   Muon_etaAtVtx.clear();
   Muon_phiAtVtx.clear();
   Muon_hwDXY.clear();
+  Muon_tfIndex.clear();
 
   Jet_pt.clear();
   Jet_eta.clear();
@@ -299,6 +300,12 @@ void DataNtuplizer::processDataBx(
   FatJet_e.clear();
   FatJet_m.clear();
 
+  EGamma_pt.clear();
+  EGamma_eta.clear();
+  EGamma_phi.clear();
+  EGamma_e.clear();
+  EGamma_Iso.clear();
+  
   //Cluster AK8 jets using jets in fastjet
   vector<fastjet::PseudoJet> FatJetInputs;
   double FatJetR = 1.0;

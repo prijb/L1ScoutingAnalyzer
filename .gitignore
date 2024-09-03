@@ -4,6 +4,9 @@ __pycache__/
 # CRAB submission scripts
 crab_*.py
 
+# Input lumis
+lumis/
+
 # CRAB work area
 crab_*/
 
