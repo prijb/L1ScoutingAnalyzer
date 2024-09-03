@@ -283,6 +283,7 @@ void DataNtuplizer::processDataBx(
   Muon_e.clear();
   Muon_qual.clear();
   Muon_hwCharge.clear();
+  Muon_ptUnconstrained.clear();
   Muon_etaAtVtx.clear();
   Muon_phiAtVtx.clear();
   Muon_hwDXY.clear();
