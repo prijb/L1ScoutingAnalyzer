@@ -75,11 +75,6 @@ private:
   edm::EDGetTokenT<l1t::EtSumBxCollection> etSumToken_;
   edm::EDGetTokenT<l1t::TauBxCollection> tauToken_;
   edm::EDGetTokenT<l1t::MuonBxCollection> muonToken_;
-  //Tokens for HLT Scouting objects
-  edm::EDGetTokenT<std::vector<Run3ScoutingPFJet>> hltJetToken_;
-  edm::EDGetTokenT<std::vector<Run3ScoutingElectron>> hltElectronToken_;
-  edm::EDGetTokenT<std::vector<Run3ScoutingPhoton>> hltPhotonToken_;
-  edm::EDGetTokenT<std::vector<Run3ScoutingMuon>> hltMuonToken_;
   //Tokens for Reco objects
   edm::EDGetTokenT<pat::JetCollection> recoJetToken_;
   edm::EDGetTokenT<pat::JetCollection> recoFatJetToken_;
@@ -131,37 +126,6 @@ private:
   //et Sums
   float totalEt, totalHt, missingEt, missingEtPhi, missingHt, missingHtPhi;
   int towerCount;
-
-  //HLT Scouting jets (PF)
-  Int_t nHltJet;
-  vector<Float16_t> HltJet_pt;
-  vector<Float16_t> HltJet_eta;
-  vector<Float16_t> HltJet_phi;
-  vector<Float16_t> HltJet_e;
-  vector<Float16_t> HltJet_mass;
-
-  //HLT Scouting electrons
-  Int_t nHltElectron;
-  vector<Float16_t> HltElectron_pt;
-  vector<Float16_t> HltElectron_eta;
-  vector<Float16_t> HltElectron_phi;
-  vector<Float16_t> HltElectron_e;
-  vector<Int_t> HltElectron_charge;
-
-  //HLT Scouting photons
-  Int_t nHltPhoton;
-  vector<Float16_t> HltPhoton_pt;
-  vector<Float16_t> HltPhoton_eta;
-  vector<Float16_t> HltPhoton_phi;
-  vector<Float16_t> HltPhoton_e;
-
-  //HLT Scouting muons
-  Int_t nHltMuon;
-  vector<Float16_t> HltMuon_pt;
-  vector<Float16_t> HltMuon_eta;
-  vector<Float16_t> HltMuon_phi;
-  vector<Float16_t> HltMuon_e;
-  vector<Int_t> HltMuon_charge;
 
   //Reco jets (PUPPI)
   Int_t nRecoJet;
@@ -217,10 +181,6 @@ OfflineDataNtuplizer::OfflineDataNtuplizer(const edm::ParameterSet& iPset)
   etSumToken_(consumes<l1t::EtSumBxCollection>(iPset.getParameter<edm::InputTag>("etSumsTag"))),
   tauToken_(consumes<l1t::TauBxCollection>(iPset.getParameter<edm::InputTag>("tausTag"))),
   muonToken_(consumes<l1t::MuonBxCollection>(iPset.getParameter<edm::InputTag>("muonsTag"))),
-  hltJetToken_(consumes<std::vector<Run3ScoutingPFJet>>(iPset.getParameter<edm::InputTag>("hltJetsTag"))),
-  hltElectronToken_(consumes<std::vector<Run3ScoutingElectron>>(iPset.getParameter<edm::InputTag>("hltElectronsTag"))),
-  hltPhotonToken_(consumes<std::vector<Run3ScoutingPhoton>>(iPset.getParameter<edm::InputTag>("hltPhotonsTag"))),
-  hltMuonToken_(consumes<std::vector<Run3ScoutingMuon>>(iPset.getParameter<edm::InputTag>("hltMuonsTag"))),
   recoJetToken_(consumes<pat::JetCollection>(iPset.getParameter<edm::InputTag>("recoJetsTag"))),
   recoFatJetToken_(consumes<pat::JetCollection>(iPset.getParameter<edm::InputTag>("recoFatJetsTag"))),
   recoElectronToken_(consumes<pat::ElectronCollection>(iPset.getParameter<edm::InputTag>("recoElectronsTag"))),
@@ -275,34 +235,6 @@ OfflineDataNtuplizer::OfflineDataNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("htMissPhi", &missingHtPhi);
   tree->Branch("towerCount", &towerCount);
 
-  //HLT Scouting info
-  tree->Branch("nHltJet", &nHltJet);
-  tree->Branch("HltJet_pt", &HltJet_pt);
-  tree->Branch("HltJet_eta", &HltJet_eta);
-  tree->Branch("HltJet_phi", &HltJet_phi);
-  tree->Branch("HltJet_e", &HltJet_e);
-  tree->Branch("HltJet_mass", &HltJet_mass);
-
-  tree->Branch("nHltElectron", &nHltElectron);
-  tree->Branch("HltElectron_pt", &HltElectron_pt);
-  tree->Branch("HltElectron_eta", &HltElectron_eta);
-  tree->Branch("HltElectron_phi", &HltElectron_phi);
-  tree->Branch("HltElectron_e", &HltElectron_e);
-  tree->Branch("HltElectron_charge", &HltElectron_charge);
-
-  tree->Branch("nHltPhoton", &nHltPhoton);
-  tree->Branch("HltPhoton_pt", &HltPhoton_pt);
-  tree->Branch("HltPhoton_eta", &HltPhoton_eta);
-  tree->Branch("HltPhoton_phi", &HltPhoton_phi);
-  tree->Branch("HltPhoton_e", &HltPhoton_e);
-
-  tree->Branch("nHltMuon", &nHltMuon);
-  tree->Branch("HltMuon_pt", &HltMuon_pt);
-  tree->Branch("HltMuon_eta", &HltMuon_eta);
-  tree->Branch("HltMuon_phi", &HltMuon_phi);
-  tree->Branch("HltMuon_e", &HltMuon_e);
-  tree->Branch("HltMuon_charge", &HltMuon_charge);
-
   //Reco info
   tree->Branch("nRecoJet", &nRecoJet);
   tree->Branch("RecoJet_pt", &RecoJet_pt);
@@ -350,11 +282,6 @@ void OfflineDataNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSet
   edm::Handle<l1t::EtSumBxCollection> etSumsCollection;
   edm::Handle<l1t::TauBxCollection> tausCollection;
   edm::Handle<l1t::MuonBxCollection> muonsCollection;
-  //HLT Scouting
-  edm::Handle<std::vector<Run3ScoutingPFJet>> hltJets;
-  edm::Handle<std::vector<Run3ScoutingElectron>> hltElectrons;
-  edm::Handle<std::vector<Run3ScoutingPhoton>> hltPhotons;
-  edm::Handle<std::vector<Run3ScoutingMuon>> hltMuons;
   //Reco
   edm::Handle<pat::JetCollection> recoJets;
   edm::Handle<pat::JetCollection> recoFatJets;
@@ -368,10 +295,6 @@ void OfflineDataNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSet
   iEvent.getByToken(etSumToken_, etSumsCollection);
   iEvent.getByToken(tauToken_, tausCollection);
   iEvent.getByToken(muonToken_, muonsCollection);
-  iEvent.getByToken(hltJetToken_, hltJets);
-  iEvent.getByToken(hltElectronToken_, hltElectrons);
-  iEvent.getByToken(hltPhotonToken_, hltPhotons);
-  iEvent.getByToken(hltMuonToken_, hltMuons);
   iEvent.getByToken(recoJetToken_, recoJets);
   iEvent.getByToken(recoFatJetToken_, recoFatJets);
   iEvent.getByToken(recoElectronToken_, recoElectrons);
@@ -407,30 +330,6 @@ void OfflineDataNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSet
   Muon_etaAtVtx.clear();
   Muon_phiAtVtx.clear();
   Muon_hwDXY.clear();
-
-  //HLT info
-  HltJet_pt.clear();
-  HltJet_eta.clear();
-  HltJet_phi.clear();
-  HltJet_e.clear();
-  HltJet_mass.clear();
-
-  HltElectron_pt.clear();
-  HltElectron_eta.clear();
-  HltElectron_phi.clear();
-  HltElectron_e.clear();
-  HltElectron_charge.clear();
-
-  HltPhoton_pt.clear();
-  HltPhoton_eta.clear();
-  HltPhoton_phi.clear();
-  HltPhoton_e.clear();
-
-  HltMuon_pt.clear();
-  HltMuon_eta.clear();
-  HltMuon_phi.clear();
-  HltMuon_e.clear();
-  HltMuon_charge.clear();
 
   //Reco info
   RecoJet_pt.clear();
@@ -562,63 +461,7 @@ void OfflineDataNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSet
         continue;
     }
   }
-
-  //Fill HLT info
-  nHltJet = 0;
-
-  if(hltJets.isValid()){
-    for (std::vector<Run3ScoutingPFJet>::const_iterator jet = hltJets->begin(); jet != hltJets->end(); jet++){
-      HltJet_pt.push_back(jet->pt());
-      HltJet_eta.push_back(jet->eta());
-      HltJet_phi.push_back(jet->phi());
-      HltJet_mass.push_back(jet->m());
-      TLorentzVector hlt_jet_vector;
-      hlt_jet_vector.SetPtEtaPhiM(jet->pt(), jet->eta(), jet->phi(), jet->m());
-      HltJet_e.push_back(hlt_jet_vector.E());
-      nHltJet++;
-    }
-  }
-
-  nHltElectron = 0;
-
-  if(hltElectrons.isValid()){
-    for (std::vector<Run3ScoutingElectron>::const_iterator electron = hltElectrons->begin(); electron != hltElectrons->end(); electron++){
-      HltElectron_pt.push_back(electron->pt());
-      HltElectron_eta.push_back(electron->eta());
-      HltElectron_phi.push_back(electron->phi());
-      HltElectron_e.push_back(electron->rawEnergy());
-      HltElectron_charge.push_back((electron->trkcharge()).at(0));
-      nHltElectron++;
-    }
-  }
-
-  nHltPhoton = 0;
-
-  if(hltPhotons.isValid()){
-    for (std::vector<Run3ScoutingPhoton>::const_iterator photon = hltPhotons->begin(); photon != hltPhotons->end(); photon++){
-      HltPhoton_pt.push_back(photon->pt());
-      HltPhoton_eta.push_back(photon->eta());
-      HltPhoton_phi.push_back(photon->phi());
-      HltPhoton_e.push_back(photon->rawEnergy());
-      nHltPhoton++;
-    }
-  }
-
-  nHltMuon = 0;
   
-  if(hltMuons.isValid()){
-    for (std::vector<Run3ScoutingMuon>::const_iterator muon = hltMuons->begin(); muon != hltMuons->end(); muon++){
-      HltMuon_pt.push_back(muon->pt());
-      HltMuon_eta.push_back(muon->eta());
-      HltMuon_phi.push_back(muon->phi());
-      TLorentzVector hlt_muon_vector;
-      hlt_muon_vector.SetPtEtaPhiM(muon->pt(), muon->eta(), muon->phi(), 0.1055);
-      HltMuon_e.push_back(hlt_muon_vector.E());
-      HltMuon_charge.push_back(muon->charge());
-      nHltMuon++;
-    }
-  }
-
   //Fill Reco info
   nRecoJet = 0;
 
