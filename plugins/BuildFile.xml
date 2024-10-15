@@ -5,6 +5,7 @@
 <use name="CommonTools/UtilAlgos"/>
 <use name="DataFormats/L1Trigger"/>
 <use name="DataFormats/L1Scouting"/>
+<use name="DataFormats/Scouting"/>
 <use name="DataFormats/JetReco"/>
 <use name="DataFormats/VertexReco"/>
 <use name="DataFormats/PatCandidates"/>

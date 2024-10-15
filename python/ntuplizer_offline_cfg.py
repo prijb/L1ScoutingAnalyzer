@@ -4,11 +4,11 @@ import sys
 
 options = VarParsing.VarParsing ('analysis')
 
-options.register ("numOrbits",
+options.register  ("numOrbits",
                   -1,
                   VarParsing.VarParsing.multiplicity.singleton,
                   VarParsing.VarParsing.varType.int,
-                  "Number of orbits/events to process")
+                  "Number of events to process")
 
 options.register ("inFile",
                   "file:",
@@ -21,12 +21,6 @@ options.register ("outFile",
                   VarParsing.VarParsing.multiplicity.singleton,
                   VarParsing.VarParsing.varType.string,
                   "Path of the output file")
-
-options.register ("onlineSelection",
-                  "",
-                  VarParsing.VarParsing.multiplicity.singleton,
-                  VarParsing.VarParsing.varType.string,
-                  "Data online selection string")
 
 options.register ("isData",
                   True,
@@ -63,37 +57,22 @@ process.source = cms.Source("PoolSource",
 if not options.isData:
   process.source.duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
 
-# Choice of analyzer depends on whether the file is Data or MC
-if options.isData:
-  if options.onlineSelection != "":
-    process.scNtuplizer = cms.EDAnalyzer("DataNtuplizer",
-      muonsTag      = cms.InputTag("FinalBxSelectorMuon", "Muon"),
-      jetsTag       = cms.InputTag("FinalBxSelectorJet", "Jet"),
-      eGammasTag    = cms.InputTag("FinalBxSelectorEGamma", "EGamma"),
-      bxSumsTag     = cms.InputTag("FinalBxSelectorBxSums", "EtSum"),
-      onlineSelection = cms.untracked.bool(True),
-      selectedBxTag = cms.InputTag(options.onlineSelection, "SelBx")
-    )
-  else:
-      process.scNtuplizer = cms.EDAnalyzer("DataNtuplizer",
-      muonsTag      = cms.InputTag("l1ScGmtUnpacker", "Muon"),
-      jetsTag       = cms.InputTag("l1ScCaloUnpacker", "Jet"),
-      eGammasTag    = cms.InputTag("l1ScCaloUnpacker", "EGamma"),
-      bxSumsTag     = cms.InputTag("l1ScCaloUnpacker", "EtSum"),
-      onlineSelection = cms.untracked.bool(False)
-    )
+#Skip product if it's not found
+#process.options = cms.untracked.PSet(
+#  TryToContinue = cms.untracked.vstring('ProductNotFound')
+#)
 
-else:
-  process.scNtuplizer = cms.EDAnalyzer("MCNtuplizer",
-    genEventInfoTag        = cms.InputTag("generator"),
-    genParticlesTag        = cms.InputTag("prunedGenParticles"),
-    genJetsTag             = cms.InputTag("slimmedGenJets"),
-    genFatJetsTag          = cms.InputTag("slimmedGenJetsAK8"),
+if options.isData:
+  process.scNtuplizer = cms.EDAnalyzer("OfflineDataNtuplizer",
     muonsTag      = cms.InputTag("gmtStage2Digis", "Muon"),
     jetsTag       = cms.InputTag("caloStage2Digis", "Jet"),
     eGammasTag    = cms.InputTag("caloStage2Digis", "EGamma"),
     tausTag       = cms.InputTag("caloStage2Digis", "Tau"),
     etSumsTag     = cms.InputTag("caloStage2Digis", "EtSum"),
+    hltJetsTag = cms.InputTag("hltScoutingPFPacker", "", "HLT"),
+    hltElectronsTag = cms.InputTag("hltScoutingEgammaPacker", "" , "HLT"),
+    hltPhotonsTag = cms.InputTag("hltScoutingEgammaPacker", "" , "HLT"),
+    hltMuonsTag = cms.InputTag("hltScoutingMuonPackerNoVtx", "" , "HLT"),
     recoJetsTag = cms.InputTag("slimmedJetsPuppi"),
     recoFatJetsTag = cms.InputTag("slimmedJetsAK8"),
     recoElectronsTag = cms.InputTag("slimmedElectrons"),
@@ -101,6 +80,9 @@ else:
     recoMuonsTag = cms.InputTag("slimmedMuons"),
     recoMetTag = cms.InputTag("slimmedMETsPuppi"),
   )
+else:
+  print("Only Data is supported for this configuration")
+
 
 process.p = cms.Path(
   process.scNtuplizer

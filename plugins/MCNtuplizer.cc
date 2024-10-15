@@ -79,6 +79,7 @@ private:
   edm::EDGetTokenT<l1t::MuonBxCollection> muonToken_;
   // Tokens for reco objects
   edm::EDGetTokenT<pat::JetCollection> recoJetToken_;
+  edm::EDGetTokenT<pat::JetCollection> recoFatJetToken_;
   edm::EDGetTokenT<pat::ElectronCollection> recoElectronToken_;
   edm::EDGetTokenT<pat::PhotonCollection> recoPhotonToken_;
   edm::EDGetTokenT<pat::MuonCollection> recoMuonToken_;
@@ -169,6 +170,14 @@ private:
   vector<Float16_t> RecoJet_btagPNetB;
   vector<Float16_t> RecoJet_btagPNetCvL;
 
+  //Reco Fat jets (AK8)
+  Int_t nRecoFatJet;
+  vector<Float16_t> RecoFatJet_pt;
+  vector<Float16_t> RecoFatJet_eta;
+  vector<Float16_t> RecoFatJet_phi;
+  vector<Float16_t> RecoFatJet_e;
+  vector<Float16_t> RecoFatJet_mass;
+
   //Reco electrons
   Int_t nRecoElectron;
   vector<Float16_t> RecoElectron_pt;
@@ -209,6 +218,7 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tauToken_(consumes<l1t::TauBxCollection>(iPset.getParameter<edm::InputTag>("tausTag"))),
   muonToken_(consumes<l1t::MuonBxCollection>(iPset.getParameter<edm::InputTag>("muonsTag"))),
   recoJetToken_(consumes<pat::JetCollection>(iPset.getParameter<edm::InputTag>("recoJetsTag"))),
+  recoFatJetToken_(consumes<pat::JetCollection>(iPset.getParameter<edm::InputTag>("recoFatJetsTag"))),
   recoElectronToken_(consumes<pat::ElectronCollection>(iPset.getParameter<edm::InputTag>("recoElectronsTag"))),
   recoPhotonToken_(consumes<pat::PhotonCollection>(iPset.getParameter<edm::InputTag>("recoPhotonsTag"))),
   recoMuonToken_(consumes<pat::MuonCollection>(iPset.getParameter<edm::InputTag>("recoMuonsTag"))),
@@ -304,6 +314,14 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("RecoJet_btagPNetB", &RecoJet_btagPNetB);
   tree->Branch("RecoJet_btagPNetCvL", &RecoJet_btagPNetCvL);
 
+  // Reco fat jet
+  tree->Branch("nRecoFatJet", &nRecoFatJet, "nRecoFatJet/I");
+  tree->Branch("RecoFatJet_pt", &RecoFatJet_pt);
+  tree->Branch("RecoFatJet_eta", &RecoFatJet_eta);
+  tree->Branch("RecoFatJet_phi", &RecoFatJet_phi);
+  tree->Branch("RecoFatJet_e", &RecoFatJet_e);
+  tree->Branch("RecoFatJet_mass", &RecoFatJet_mass);
+  
   // Reco electrons
   tree->Branch("nRecoElectron", &nRecoElectron, "nRecoElectron/I");
   tree->Branch("RecoElectron_pt", &RecoElectron_pt);
@@ -345,6 +363,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   edm::Handle<l1t::TauBxCollection> tausCollection;
   edm::Handle<l1t::MuonBxCollection> muonsCollection;
   edm::Handle<pat::JetCollection> recoJets;
+  edm::Handle<pat::JetCollection> recoFatJets;
   edm::Handle<pat::ElectronCollection> recoElectrons;
   edm::Handle<pat::PhotonCollection> recoPhotons;
   edm::Handle<pat::MuonCollection> recoMuons;
@@ -360,6 +379,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   iEvent.getByToken(tauToken_, tausCollection);
   iEvent.getByToken(muonToken_, muonsCollection);
   iEvent.getByToken(recoJetToken_, recoJets);
+  iEvent.getByToken(recoFatJetToken_, recoFatJets);
   iEvent.getByToken(recoElectronToken_, recoElectrons);
   iEvent.getByToken(recoPhotonToken_, recoPhotons);
   iEvent.getByToken(recoMuonToken_, recoMuons);
@@ -423,6 +443,12 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   RecoJet_partonFlav.clear();
   RecoJet_btagPNetB.clear();
   RecoJet_btagPNetCvL.clear();
+
+  RecoFatJet_pt.clear();
+  RecoFatJet_eta.clear();
+  RecoFatJet_phi.clear();
+  RecoFatJet_e.clear();
+  RecoFatJet_mass.clear();
 
   RecoElectron_pt.clear();
   RecoElectron_eta.clear();
@@ -747,6 +773,19 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
       }
       */
       nRecoJet++;
+    }
+  }
+
+  nRecoFatJet = 0;
+  if(recoFatJets.isValid()){
+    for (pat::JetCollection::const_iterator recoFatJet = recoFatJets->begin(); recoFatJet != recoFatJets->end(); recoFatJet++){
+      //if(recoFatJet->pt() < 10) continue;
+      RecoFatJet_pt.push_back(recoFatJet->pt());
+      RecoFatJet_eta.push_back(recoFatJet->eta());
+      RecoFatJet_phi.push_back(recoFatJet->phi());
+      RecoFatJet_e.push_back(recoFatJet->energy());
+      RecoFatJet_mass.push_back(recoFatJet->mass());
+      nRecoFatJet++;
     }
   }
 
