@@ -63,48 +63,13 @@ process.source = cms.Source("PoolSource",
 if not options.isData:
   process.source.duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
 
-# Choice of analyzer depends on whether the file is Data or MC
-if options.isData:
-  if options.onlineSelection != "":
-    process.scNtuplizer = cms.EDAnalyzer("DataNtuplizer",
-      muonsTag      = cms.InputTag("FinalBxSelectorMuon", "Muon"),
-      jetsTag       = cms.InputTag("FinalBxSelectorJet", "Jet"),
-      eGammasTag    = cms.InputTag("FinalBxSelectorEGamma", "EGamma"),
-      bxSumsTag     = cms.InputTag("FinalBxSelectorBxSums", "EtSum"),
-      onlineSelection = cms.untracked.bool(True),
-      selectedBxTag = cms.InputTag(options.onlineSelection, "SelBx")
-    )
-  else:
-      process.scNtuplizer = cms.EDAnalyzer("DataNtuplizer",
-      muonsTag      = cms.InputTag("l1ScGmtUnpacker", "Muon"),
-      jetsTag       = cms.InputTag("l1ScCaloUnpacker", "Jet"),
-      eGammasTag    = cms.InputTag("l1ScCaloUnpacker", "EGamma"),
-      bxSumsTag     = cms.InputTag("l1ScCaloUnpacker", "EtSum"),
-      onlineSelection = cms.untracked.bool(False)
-    )
-  process.p = cms.Path(
-    process.scNtuplizer
-  )
 
+process.testReweight = cms.EDAnalyzer("TestReweightAnalyzer",
+    genEventInfo = cms.InputTag("generator"),
+    PileupInfo = cms.InputTag("addPileupInfo"),
+    qcdWeightFile = cms.string("data/qcd_30to50_with_weights.json")
+)
 
-else:
-  process.scNtuplizer = cms.EDAnalyzer("MCNtuplizer",
-    genEventInfoTag        = cms.InputTag("generator"),
-    genParticlesTag        = cms.InputTag("prunedGenParticles"),
-    genJetsTag             = cms.InputTag("slimmedGenJets"),
-    genFatJetsTag          = cms.InputTag("slimmedGenJetsAK8"),
-    muonsTag      = cms.InputTag("gmtStage2Digis", "Muon"),
-    jetsTag       = cms.InputTag("caloStage2Digis", "Jet"),
-    eGammasTag    = cms.InputTag("caloStage2Digis", "EGamma"),
-    tausTag       = cms.InputTag("caloStage2Digis", "Tau"),
-    etSumsTag     = cms.InputTag("caloStage2Digis", "EtSum"),
-    recoJetsTag = cms.InputTag("slimmedJetsPuppi"),
-    recoFatJetsTag = cms.InputTag("slimmedJetsAK8"),
-    recoElectronsTag = cms.InputTag("slimmedElectrons"),
-    recoPhotonsTag = cms.InputTag("slimmedPhotons"),
-    recoMuonsTag = cms.InputTag("slimmedMuons"),
-    recoMetTag = cms.InputTag("slimmedMETsPuppi"),
-  )
-  process.p = cms.Path(
-    process.scNtuplizer
-  )
+process.p = cms.Path(
+    process.testReweight
+)

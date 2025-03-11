@@ -1,0 +1,32 @@
+{
+    "v2": {
+        "dy": [],
+        "qcd": [
+            {
+                "min_pt": 0,
+                "max_pt": 9999,
+                "xsec": 78770000000.0,
+                "nr_inclusive": 0.0,
+                "nr_em": 0,
+                "nr_mu": 0,
+                "mu_filt_eff": 0.0,
+                "mu_em_filt_eff": 0.0,
+                "em_filt_eff": 0.0,
+                "em_mu_filt_eff": 0.0
+            },
+            {
+                "min_pt": 30.0,
+                "max_pt": 50.0,
+                "xsec": 112600000.0,
+                "nr_inclusive": 3867686,
+                "nr_em": 0,
+                "nr_mu": 0,
+                "mu_filt_eff": 0.0082,
+                "mu_em_filt_eff": 0.0491,
+                "em_filt_eff": 0.0593,
+                "em_mu_filt_eff": 0.0059
+            }
+        ],
+        "wjets": []
+    }
+}
