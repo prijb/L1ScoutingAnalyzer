@@ -1,9 +1,14 @@
 <use name="FWCore/Framework"/>
 <use name="FWCore/ParameterSet"/>
 <use name="FWCore/ServiceRegistry"/>
+<use name="SimDataFormats/GeneratorProducts"/>
+<use name="SimDataFormats/PileupSummaryInfo"/>
+<use name="DataFormats/JetReco"/>
+<use name="DataFormats/HepMCCandidate"/>
 <use name="CommonTools/UtilAlgos"/>
 <use name="fastjet"/>
 <use name="root"/>
+<use name="boost"/>
 <export>
     <lib name="1"/>
 </export>
