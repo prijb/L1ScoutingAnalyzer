@@ -12,6 +12,7 @@
 <use name="SimDataFormats/GeneratorProducts"/>
 <use name="SimDataFormats/PileupSummaryInfo"/>
 <use name="L1TriggerScouting/Utilities"/>
+<use name="L1ScoutingAnalyzer/L1ScoutingAnalyzer"/>
 <use name="fastjet"/>
 <use name="root"/>
 <use name="xgboost"/>

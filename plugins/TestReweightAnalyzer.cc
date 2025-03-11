@@ -80,6 +80,7 @@ private:
 
     // Weight
     float bxFreq = 30E6;
+    std::string qcdWeightFile;
     QCDWeightCalc qcdWeightCalc;
     float weight;
     float weight_v2;
@@ -88,7 +89,8 @@ private:
 TestReweightAnalyzer::TestReweightAnalyzer(const edm::ParameterSet& iConfig):
     genEventInfoToken_(consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genEventInfo"))),
     PileupInfoToken_(consumes<std::vector<PileupSummaryInfo>>(iConfig.getParameter<edm::InputTag>("PileupInfo"))),
-    qcdWeightCalc(iConfig.getParameter<std::string>("qcdWeightFile"), bxFreq)
+    qcdWeightFile(iConfig.getParameter<std::string>("qcdWeightFile")),
+    qcdWeightCalc(iConfig.getParameter<std::string>("qcdWeightFile"), bxFreq)   
 {
     edm::Service<TFileService> fs;
     fs->file().cd();
@@ -97,6 +99,8 @@ TestReweightAnalyzer::TestReweightAnalyzer(const edm::ParameterSet& iConfig):
 
     tree->Branch("weight",&weight,"weight/F");
     tree->Branch("weight_v2",&weight_v2,"weight_v2/F");
+
+    std::cout << "QCD filename: " << qcdWeightFile << std::endl;
 }
 
 void TestReweightAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
