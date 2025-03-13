@@ -66,7 +66,9 @@ if not options.isData:
 
 process.testReweight = cms.EDAnalyzer("TestReweightAnalyzer",
     genEventInfo = cms.InputTag("generator"),
-    PileupInfo = cms.InputTag("addPileupInfo"),
+    PileupInfo = cms.InputTag("slimmedAddPileupInfo"),
+    PuWeight = cms.InputTag("stitchingWeight"),
+    triggerResults = cms.InputTag("TriggerResults::HLT"),
     qcdWeightFile = cms.string("data/qcd_30to50_with_weights.json")
 )
 

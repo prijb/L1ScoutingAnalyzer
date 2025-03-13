@@ -49,6 +49,7 @@
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
 #include "DataFormats/PatCandidates/interface/Photon.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
 
 #include <memory>
 #include <utility>
@@ -74,6 +75,8 @@ private:
     // Tokens for gen info
     edm::EDGetTokenT<GenEventInfoProduct> genEventInfoToken_;
     edm::EDGetTokenT<std::vector<PileupSummaryInfo>> PileupInfoToken_;
+    edm::EDGetTokenT<double> PuWeightToken_;
+    edm::EDGetTokenT<edm::TriggerResults> triggerResultsToken_;
     
     // Tree 
     TTree* tree;
@@ -84,11 +87,14 @@ private:
     QCDWeightCalc qcdWeightCalc;
     float weight;
     float weight_v2;
+    std::vector<PileupSummaryInfo> pileupInfoIntime;
 };
 
 TestReweightAnalyzer::TestReweightAnalyzer(const edm::ParameterSet& iConfig):
     genEventInfoToken_(consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genEventInfo"))),
     PileupInfoToken_(consumes<std::vector<PileupSummaryInfo>>(iConfig.getParameter<edm::InputTag>("PileupInfo"))),
+    PuWeightToken_(consumes<double>(iConfig.getParameter<edm::InputTag>("PuWeight"))),
+    triggerResultsToken_(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("triggerResults"))),
     qcdWeightFile(iConfig.getParameter<std::string>("qcdWeightFile")),
     qcdWeightCalc(iConfig.getParameter<std::string>("qcdWeightFile"), bxFreq)   
 {
@@ -104,11 +110,60 @@ TestReweightAnalyzer::TestReweightAnalyzer(const edm::ParameterSet& iConfig):
 }
 
 void TestReweightAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
-{
+{   
+    // Clear vectors
+    pileupInfoIntime.clear();
+
     edm::Handle<GenEventInfoProduct> genEventInfo;
     iEvent.getByToken(genEventInfoToken_,genEventInfo);
+    // Add pileup info 
+    edm::Handle<std::vector<PileupSummaryInfo>> PileupInfo;
+    iEvent.getByToken(PileupInfoToken_,PileupInfo);
+
     weight = 1.0;
     weight_v2 = 0.8;
+
+    // Retrieve the hard scale from GenEventInfo
+    float hardPtHat = genEventInfo->qScale();
+
+    // Loop over pileup info and store only those for bunch crossing == 0 (in-time)
+    for (const auto& pu : *PileupInfo) {
+        if (pu.getBunchCrossing() == 0) {
+        pileupInfoIntime.push_back(pu);
+        }
+    }
+
+    // Pileup pT hats (sorted in decreasing order)
+    std::vector<float> puPtHats;
+    if (pileupInfoIntime.size() > 0) {
+        puPtHats = pileupInfoIntime[0].getPU_pT_hats();
+    }
+    std::sort(puPtHats.begin(), puPtHats.end(), std::greater<float>());
+
+    // Debug: Replace puPtHats with a dummy singular event with pT hat = 1
+    puPtHats.clear();
+    //puPtHats.push_back(1);
+
+
+    // Ignore triggers
+    bool pass_em = false;
+    bool pass_mu = false;
+
+    // Calculate weights
+    float calcweight = qcdWeightCalc.weight(hardPtHat, puPtHats, pass_em, pass_mu);
+    weight_v2 = calcweight;
+
+    // Debug print
+    std::cout << "Hard pT hat: " << hardPtHat << std::endl;
+    std::cout << puPtHats.size() << " PU pT hats: ";
+    std::cout << "highest pT hat of " << puPtHats[0];
+    //for (const auto& puPtHat : puPtHats) {
+    //    std::cout << puPtHat << " ";
+    //}
+    std::cout << std::endl;
+    std::cout << "Weight: " << calcweight << std::endl;
+
+
     tree->Fill();
 }
 

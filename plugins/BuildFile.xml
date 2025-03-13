@@ -9,6 +9,7 @@
 <use name="DataFormats/JetReco"/>
 <use name="DataFormats/VertexReco"/>
 <use name="DataFormats/PatCandidates"/>
+<use name="DataFormats/Common"/>
 <use name="SimDataFormats/GeneratorProducts"/>
 <use name="SimDataFormats/PileupSummaryInfo"/>
 <use name="L1TriggerScouting/Utilities"/>
