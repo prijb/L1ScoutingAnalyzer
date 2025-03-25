@@ -1,4 +1,5 @@
 #include "L1ScoutingAnalyzer/L1ScoutingAnalyzer/interface/QCDWeightCalc.h"
+#include "FWCore/ParameterSet/interface/FileInPath.h"
 
 #include <algorithm>
 #include <boost/property_tree/json_parser.hpp>
@@ -48,11 +49,12 @@ void QCDWeightCalc::PtBinnedSample::setEnrichedCounts(float nrMinBias,float minB
 
 
 
-QCDWeightCalc::QCDWeightCalc(const std::string& inputFilename,float bxFreq):
+QCDWeightCalc::QCDWeightCalc(const edm::FileInPath& inputFile,float bxFreq):
     bxFreq_(bxFreq)
 {
+    std::string fullPath = inputFile.fullPath();
     boost::property_tree::ptree sampleData;
-    boost::property_tree::read_json(inputFilename,sampleData);
+    boost::property_tree::read_json(fullPath,sampleData);
     const auto& qcdSamples = sampleData.get_child("v2").get_child("qcd");
     for(const auto& sample : qcdSamples){
         bins_.push_back(PtBinnedSample(sample.second));   
@@ -103,14 +105,14 @@ float QCDWeightCalc::weight(float genPtHat,const std::vector<float>& puPtHats,bo
     float expectEventsMC = 0;
 
     // DEBUG
-    float expectEventsMCunweighted = 0;
-    std::cout << "Number of bins (excluding overflow):  " << bins_.size() << std::endl;
-    std::cout << "Counts in each bin: "; 
-    for (size_t i = 0; i < binCounts.size(); i++) {
-        std::cout << binCounts[i] << " ";
-    }
-    std::cout << std::endl;
-    std::cout << "Total count: " << totCount << std::endl;
+    //float expectEventsMCunweighted = 0;
+    //std::cout << "Number of bins (excluding overflow):  " << bins_.size() << std::endl;
+    //std::cout << "Counts in each bin: "; 
+    //for (size_t i = 0; i < binCounts.size(); i++) {
+    //    std::cout << binCounts[i] << " ";
+    //}
+    //std::cout << std::endl;
+    //std::cout << "Total count: " << totCount << std::endl;
     // END DEBUG
 
     for(size_t binNr=0;binNr<bins_.size();binNr++){
@@ -122,13 +124,13 @@ float QCDWeightCalc::weight(float genPtHat,const std::vector<float>& puPtHats,bo
         expectEventsMC += bins_[binNr].nrIncl * probCorr;
 
         // DEBUG
-        expectEventsMCunweighted += bins_[binNr].nrIncl;
-        std::cout << "binNr: " << binNr << " binFrac: " << binFrac << " theoryFrac: " << theoryFrac << " probCorr: " << probCorr << " expectEventsMC from bin: " << (bins_[binNr].nrIncl * probCorr) << " expectEventsMC from bin (unweighted): " << (bins_[binNr].nrIncl)  << std::endl;
+        //expectEventsMCunweighted += bins_[binNr].nrIncl;
+        //std::cout << "binNr: " << binNr << " binFrac: " << binFrac << " theoryFrac: " << theoryFrac << " probCorr: " << probCorr << " expectEventsMC from bin: " << (bins_[binNr].nrIncl * probCorr) << " expectEventsMC from bin (unweighted): " << (bins_[binNr].nrIncl)  << std::endl;
         // END DEBUG
     }
 
     // DEBUG
-    std::cout << "expectEventsMC: " << expectEventsMC << " expectEventsMC (unweighted): " << expectEventsMCunweighted << std::endl;
+    //std::cout << "expectEventsMC: " << expectEventsMC << " expectEventsMC (unweighted): " << expectEventsMCunweighted << std::endl;
     // END DEBUG
     float weight = bxFreq_ / expectEventsMC;
     if(passEm || passMu){

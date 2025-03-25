@@ -55,6 +55,9 @@
 #include <map>
 #include <string>
 
+//#include "L1ScoutingAnalyzer/L1ScoutingAnalyzer/plugins/EventWeightProducer.cc"
+#include "L1ScoutingAnalyzer/L1ScoutingAnalyzer/interface/QCDReweightInfo.h"
+
 class MCNtuplizer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 public:
   explicit MCNtuplizer(const edm::ParameterSet&);
@@ -84,6 +87,9 @@ private:
   edm::EDGetTokenT<pat::PhotonCollection> recoPhotonToken_;
   edm::EDGetTokenT<pat::MuonCollection> recoMuonToken_;
   edm::EDGetTokenT<pat::METCollection> recoMetToken_;
+  
+  // Token for the QCD reweight
+  edm::EDGetTokenT<float> qcdWeightToken_;
 
   // Tree that contains info per bunch crossing
   TTree* tree;
@@ -205,6 +211,8 @@ private:
   Float16_t RecoMet_pt;
   Float16_t RecoMet_phi;
 
+  // Event weight from EventWeightProducer
+  float event_weight;
 };
 
 MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
@@ -222,7 +230,8 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   recoElectronToken_(consumes<pat::ElectronCollection>(iPset.getParameter<edm::InputTag>("recoElectronsTag"))),
   recoPhotonToken_(consumes<pat::PhotonCollection>(iPset.getParameter<edm::InputTag>("recoPhotonsTag"))),
   recoMuonToken_(consumes<pat::MuonCollection>(iPset.getParameter<edm::InputTag>("recoMuonsTag"))),
-  recoMetToken_(consumes<pat::METCollection>(iPset.getParameter<edm::InputTag>("recoMetTag")))
+  recoMetToken_(consumes<pat::METCollection>(iPset.getParameter<edm::InputTag>("recoMetTag"))),
+  qcdWeightToken_(consumes<float>(iPset.getParameter<edm::InputTag>("eventWeightTag")))
 {
 
   // the root file service to handle the output file
@@ -233,6 +242,7 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
 
   //Gen info
   tree->Branch("genPtHat", &genPtHat, "genPtHat/F");
+  tree->Branch("event_weight", &event_weight, "event_weight/F");
   tree->Branch("nGenPart", &nGenPart, "nGenPart/I");
   tree->Branch("GenPart_pt", &GenPart_pt);
   tree->Branch("GenPart_eta", &GenPart_eta);
@@ -368,6 +378,17 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   edm::Handle<pat::PhotonCollection> recoPhotons;
   edm::Handle<pat::MuonCollection> recoMuons;
   edm::Handle<pat::METCollection> recoMet;
+
+  // Get the reweight product from the TestReweightProducer
+  edm::Handle<float> weightHandle;
+  iEvent.getByToken(qcdWeightToken_, weightHandle);
+  if (weightHandle.isValid()){
+    event_weight = *weightHandle;
+  } else {
+    event_weight = 1.0;
+  }
+
+  //std::cout << "Event weight: " << event_weight << std::endl;
 
   iEvent.getByToken(genEventInfoToken_, genEventInfo);
   iEvent.getByToken(genParticlesToken_, genParticles);

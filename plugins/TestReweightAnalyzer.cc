@@ -60,6 +60,7 @@
 
 // Added classes
 #include "L1ScoutingAnalyzer/L1ScoutingAnalyzer/interface/QCDWeightCalc.h"
+#include "FWCore/ParameterSet/interface/FileInPath.h"
 
 class TestReweightAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 public:
@@ -83,7 +84,7 @@ private:
 
     // Weight
     float bxFreq = 30E6;
-    std::string qcdWeightFile;
+    edm::FileInPath qcdWeightFile;
     QCDWeightCalc qcdWeightCalc;
     float weight;
     float weight_v2;
@@ -95,8 +96,8 @@ TestReweightAnalyzer::TestReweightAnalyzer(const edm::ParameterSet& iConfig):
     PileupInfoToken_(consumes<std::vector<PileupSummaryInfo>>(iConfig.getParameter<edm::InputTag>("PileupInfo"))),
     PuWeightToken_(consumes<double>(iConfig.getParameter<edm::InputTag>("PuWeight"))),
     triggerResultsToken_(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("triggerResults"))),
-    qcdWeightFile(iConfig.getParameter<std::string>("qcdWeightFile")),
-    qcdWeightCalc(iConfig.getParameter<std::string>("qcdWeightFile"), bxFreq)   
+    qcdWeightFile(iConfig.getParameter<edm::FileInPath>("qcdWeightFile")),
+    qcdWeightCalc(iConfig.getParameter<edm::FileInPath>("qcdWeightFile"), bxFreq)   
 {
     edm::Service<TFileService> fs;
     fs->file().cd();
@@ -106,7 +107,7 @@ TestReweightAnalyzer::TestReweightAnalyzer(const edm::ParameterSet& iConfig):
     tree->Branch("weight",&weight,"weight/F");
     tree->Branch("weight_v2",&weight_v2,"weight_v2/F");
 
-    std::cout << "QCD filename: " << qcdWeightFile << std::endl;
+    //std::cout << "QCD filename: " << qcdWeightFile << std::endl;
 }
 
 void TestReweightAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
@@ -141,7 +142,7 @@ void TestReweightAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSet
     std::sort(puPtHats.begin(), puPtHats.end(), std::greater<float>());
 
     // Debug: Replace puPtHats with a dummy singular event with pT hat = 1
-    puPtHats.clear();
+    //puPtHats.clear();
     //puPtHats.push_back(1);
 
 
@@ -154,14 +155,14 @@ void TestReweightAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSet
     weight_v2 = calcweight;
 
     // Debug print
-    std::cout << "Hard pT hat: " << hardPtHat << std::endl;
-    std::cout << puPtHats.size() << " PU pT hats: ";
-    std::cout << "highest pT hat of " << puPtHats[0];
+    //std::cout << "Hard pT hat: " << hardPtHat << std::endl;
+    //std::cout << puPtHats.size() << " PU pT hats: ";
+    //std::cout << "highest pT hat of " << puPtHats[0];
     //for (const auto& puPtHat : puPtHats) {
     //    std::cout << puPtHat << " ";
     //}
-    std::cout << std::endl;
-    std::cout << "Weight: " << calcweight << std::endl;
+    //std::cout << std::endl;
+    //std::cout << "Weight: " << calcweight << std::endl;
 
 
     tree->Fill();

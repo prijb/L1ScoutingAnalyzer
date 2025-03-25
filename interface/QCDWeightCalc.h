@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>   
 #include <boost/property_tree/ptree.hpp>
+#include "FWCore/ParameterSet/interface/FileInPath.h"
 
 class QCDWeightCalc {
 public:
@@ -30,7 +31,7 @@ public:
     void setEnrichedCounts(float nrMinBias,float minBiasXSec);
   };
 
-  QCDWeightCalc(const std::string& inputFilename,float bxFreq=30E6);
+  QCDWeightCalc(const edm::FileInPath& inputFile,float bxFreq=30E6);
   float weight(float genPtHat,const std::vector<float>& puPtHats,bool passEm,bool passMu)const;
   float filtWeight(float genPtHat,bool passEm,bool passMu)const;
   float operator()(float genPtHat,const std::vector<float>& puPtHats,bool passEm,bool passMu)const{

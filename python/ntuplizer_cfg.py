@@ -88,6 +88,14 @@ if options.isData:
 
 
 else:
+  process.eventWeight= cms.EDProducer("EventWeightProducer",
+      genEventInfo = cms.InputTag("generator"),
+      PileupInfo = cms.InputTag("slimmedAddPileupInfo"),
+      PuWeight = cms.InputTag("stitchingWeight"),
+      triggerResults = cms.InputTag("TriggerResults", "", "HLT"),
+      qcdWeightFile = cms.FileInPath("L1ScoutingAnalyzer/L1ScoutingAnalyzer/data/qcd_with_weights.json")
+  )
+
   process.scNtuplizer = cms.EDAnalyzer("MCNtuplizer",
     genEventInfoTag        = cms.InputTag("generator"),
     genParticlesTag        = cms.InputTag("prunedGenParticles"),
@@ -104,7 +112,9 @@ else:
     recoPhotonsTag = cms.InputTag("slimmedPhotons"),
     recoMuonsTag = cms.InputTag("slimmedMuons"),
     recoMetTag = cms.InputTag("slimmedMETsPuppi"),
+    eventWeightTag = cms.InputTag("eventWeight")
   )
   process.p = cms.Path(
+    process.eventWeight *
     process.scNtuplizer
   )
