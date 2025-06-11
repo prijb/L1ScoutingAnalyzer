@@ -112,7 +112,8 @@ else:
     recoPhotonsTag = cms.InputTag("slimmedPhotons"),
     recoMuonsTag = cms.InputTag("slimmedMuons"),
     recoMetTag = cms.InputTag("slimmedMETsPuppi"),
-    eventWeightTag = cms.InputTag("eventWeight")
+    eventWeightTag = cms.InputTag("eventWeight"),
+    PileupInfoTag = cms.InputTag("slimmedAddPileupInfo"),
   )
   process.p = cms.Path(
     process.eventWeight *

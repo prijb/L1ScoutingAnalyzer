@@ -15,6 +15,7 @@
 // Gen event info (pt hat)
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
 #include "DataFormats/JetReco/interface/GenJet.h"
 #include "DataFormats/JetReco/interface/GenJetCollection.h"
@@ -71,6 +72,7 @@ private:
 
   // Tokens for gen objects
   edm::EDGetTokenT<GenEventInfoProduct> genEventInfoToken_;
+  edm::EDGetTokenT<std::vector<PileupSummaryInfo>> pileupInfoToken_;
   edm::EDGetTokenT<reco::GenParticleCollection> genParticlesToken_;
   edm::EDGetTokenT<reco::GenJetCollection> genJetsToken_;
   edm::EDGetTokenT<reco::GenJetCollection> genFatJetsToken_;
@@ -96,9 +98,11 @@ private:
 
   //Gen info
   Float_t genPtHat;
+  Int_t nPileup;
   Int_t nGenPart;
   Int_t nGenJet;
   Int_t nGenFatJet;
+  vector<Float16_t> PileupPtHats;
   vector<Float16_t> GenPart_pt;
   vector<Float16_t> GenPart_eta;
   vector<Float16_t> GenPart_phi;
@@ -217,6 +221,7 @@ private:
 
 MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   :genEventInfoToken_(consumes<GenEventInfoProduct>(iPset.getParameter<edm::InputTag>("genEventInfoTag"))), 
+  pileupInfoToken_(consumes<std::vector<PileupSummaryInfo>>(iPset.getParameter<edm::InputTag>("PileupInfoTag"))),
   genParticlesToken_(consumes<reco::GenParticleCollection>(iPset.getParameter<edm::InputTag>("genParticlesTag"))),
   genJetsToken_(consumes<reco::GenJetCollection>(iPset.getParameter<edm::InputTag>("genJetsTag"))),
   genFatJetsToken_(consumes<reco::GenJetCollection>(iPset.getParameter<edm::InputTag>("genFatJetsTag"))),
@@ -242,6 +247,8 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
 
   //Gen info
   tree->Branch("genPtHat", &genPtHat, "genPtHat/F");
+  tree->Branch("nPileup", &nPileup, "nPileup/I");
+  tree->Branch("PileupPtHats", &PileupPtHats);
   tree->Branch("event_weight", &event_weight, "event_weight/F");
   tree->Branch("nGenPart", &nGenPart, "nGenPart/I");
   tree->Branch("GenPart_pt", &GenPart_pt);
@@ -364,6 +371,7 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
 
 void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   edm::Handle<GenEventInfoProduct> genEventInfo;
+  edm::Handle<std::vector<PileupSummaryInfo>> pileupInfo;
   edm::Handle<reco::GenParticleCollection> genParticles;
   edm::Handle<reco::GenJetCollection> genJets;
   edm::Handle<reco::GenJetCollection> genFatJets;
@@ -391,6 +399,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   //std::cout << "Event weight: " << event_weight << std::endl;
 
   iEvent.getByToken(genEventInfoToken_, genEventInfo);
+  iEvent.getByToken(pileupInfoToken_, pileupInfo);
   iEvent.getByToken(genParticlesToken_, genParticles);
   iEvent.getByToken(genJetsToken_, genJets);
   iEvent.getByToken(genFatJetsToken_, genFatJets);
@@ -405,6 +414,8 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   iEvent.getByToken(recoPhotonToken_, recoPhotons);
   iEvent.getByToken(recoMuonToken_, recoMuons);
   iEvent.getByToken(recoMetToken_, recoMet);
+
+  PileupPtHats.clear();
 
   GenPart_pt.clear();
   GenPart_eta.clear();
@@ -498,6 +509,20 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
 
   //Gen event pT hat
   genPtHat = (genEventInfo->hasBinningValues() ? genEventInfo->binningValues()[0] : 0.0);
+
+  // Fill PileupPtHats
+  nPileup = 0;
+  std::vector<PileupSummaryInfo> pileupInfoIntime;
+  for (const auto& pu : *pileupInfo) {
+    if (pu.getBunchCrossing() == 0) {
+      pileupInfoIntime.push_back(pu);
+    }
+  }
+  if (!pileupInfoIntime.empty()) {
+    PileupPtHats = pileupInfoIntime[0].getPU_pT_hats();
+  }
+  std::sort(PileupPtHats.begin(), PileupPtHats.end(), std::greater<float>());
+  nPileup = PileupPtHats.size();
 
   //Gen particles
   nGenPart = 0;
