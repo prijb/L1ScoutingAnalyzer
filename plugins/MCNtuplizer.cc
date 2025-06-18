@@ -102,6 +102,7 @@ private:
   vector<Int_t> GenPart_charge;
   vector<Int_t> GenPart_genPartIdxMother;
   vector<Int_t> GenPart_MotherpdgId;
+  vector<Int_t> GenPart_statusFlags;
   
   vector<Float16_t> GenJet_pt;
   vector<Float16_t> GenJet_eta;
@@ -243,6 +244,7 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("GenPart_charge", &GenPart_charge);
   tree->Branch("GenPart_genPartIdxMother", &GenPart_genPartIdxMother);
   tree->Branch("GenPart_MotherpdgId", &GenPart_MotherpdgId);
+  tree->Branch("GenPart_statusFlags", &GenPart_statusFlags);
 
   tree->Branch("nGenJet", &nGenJet, "nGenJet/I");
   tree->Branch("GenJet_pt", &GenJet_pt);
@@ -394,6 +396,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   GenPart_charge.clear();
   GenPart_genPartIdxMother.clear();
   GenPart_MotherpdgId.clear();
+  GenPart_statusFlags.clear();
 
   GenJet_pt.clear();
   GenJet_eta.clear();
@@ -504,6 +507,23 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
       int MotherpdgId = (genPartIdxMother != -1) ? (GenPart_pdgId[genPartIdxMother]) : 0;
       GenPart_genPartIdxMother.push_back(genPartIdxMother);
       GenPart_MotherpdgId.push_back(MotherpdgId);
+      GenPart_statusFlags.push_back(
+            genParticle->statusFlags().isLastCopyBeforeFSR()                  * 16384 +
+            genParticle->statusFlags().isLastCopy()                           * 8192  +
+            genParticle->statusFlags().isFirstCopy()                          * 4096  +
+            genParticle->statusFlags().fromHardProcessBeforeFSR()             * 2048  +
+            genParticle->statusFlags().isDirectHardProcessTauDecayProduct()   * 1024  +
+            genParticle->statusFlags().isHardProcessTauDecayProduct()         * 512   +
+            genParticle->statusFlags().fromHardProcess()                      * 256   +
+            genParticle->statusFlags().isHardProcess()                        * 128   +
+            genParticle->statusFlags().isDirectHadronDecayProduct()           * 64    +
+            genParticle->statusFlags().isDirectPromptTauDecayProduct()        * 32    +
+            genParticle->statusFlags().isDirectTauDecayProduct()              * 16    +
+            genParticle->statusFlags().isPromptTauDecayProduct()              * 8     +
+            genParticle->statusFlags().isTauDecayProduct()                    * 4     +
+            genParticle->statusFlags().isDecayedLeptonHadron()                * 2     +
+            genParticle->statusFlags().isPrompt()                             * 1
+      );
       nGenPart++;
     }
   }
