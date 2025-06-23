@@ -88,6 +88,11 @@ private:
   // Tree that contains info per bunch crossing
   TTree* tree;
 
+  // Event info
+  ULong64_t event;
+  Int_t run;
+  Int_t lumi;
+
   //Gen info
   Float_t genPtHat;
   Int_t nGenPart;
@@ -103,7 +108,7 @@ private:
   vector<Int_t> GenPart_genPartIdxMother;
   vector<Int_t> GenPart_MotherpdgId;
   vector<Int_t> GenPart_statusFlags;
-  
+
   vector<Float16_t> GenJet_pt;
   vector<Float16_t> GenJet_eta;
   vector<Float16_t> GenJet_phi;
@@ -209,7 +214,7 @@ private:
 };
 
 MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
-  :genEventInfoToken_(consumes<GenEventInfoProduct>(iPset.getParameter<edm::InputTag>("genEventInfoTag"))), 
+  :genEventInfoToken_(consumes<GenEventInfoProduct>(iPset.getParameter<edm::InputTag>("genEventInfoTag"))),
   genParticlesToken_(consumes<reco::GenParticleCollection>(iPset.getParameter<edm::InputTag>("genParticlesTag"))),
   genJetsToken_(consumes<reco::GenJetCollection>(iPset.getParameter<edm::InputTag>("genJetsTag"))),
   genFatJetsToken_(consumes<reco::GenJetCollection>(iPset.getParameter<edm::InputTag>("genFatJetsTag"))),
@@ -231,6 +236,11 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
 
   // Create the TTree
   tree = fs->make<TTree>("Events", "Events_bx");
+
+  // Event info
+  tree->Branch("event", &event, "event/l");
+  tree->Branch("run", &run, "run/I");
+  tree->Branch("luminosityBlock", &lumi, "luminosityBlock/I");
 
   //Gen info
   tree->Branch("genPtHat", &genPtHat, "genPtHat/F");
@@ -257,7 +267,7 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("GenFatJet_eta", &GenFatJet_eta);
   tree->Branch("GenFatJet_phi", &GenFatJet_phi);
   tree->Branch("GenFatJet_e", &GenFatJet_e);
-  
+
   // Jets
   tree->Branch("nJet", &nJet, "nJet/I");
   tree->Branch("Jet_pt", &Jet_pt);
@@ -283,7 +293,7 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("EGamma_phi", &EGamma_phi);
   tree->Branch("EGamma_e", &EGamma_e);
   tree->Branch("EGamma_Iso", &EGamma_Iso);
-  
+
   // Muons
   tree->Branch("nMuon", &nMuon, "nMuon/I");
   tree->Branch("Muon_pt", &Muon_pt);
@@ -323,7 +333,7 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("RecoFatJet_phi", &RecoFatJet_phi);
   tree->Branch("RecoFatJet_e", &RecoFatJet_e);
   tree->Branch("RecoFatJet_mass", &RecoFatJet_mass);
-  
+
   // Reco electrons
   tree->Branch("nRecoElectron", &nRecoElectron, "nRecoElectron/I");
   tree->Branch("RecoElectron_pt", &RecoElectron_pt);
@@ -346,11 +356,11 @@ MCNtuplizer::MCNtuplizer(const edm::ParameterSet& iPset)
   tree->Branch("RecoMuon_phi", &RecoMuon_phi);
   tree->Branch("RecoMuon_e", &RecoMuon_e);
   tree->Branch("RecoMuon_charge", &RecoMuon_charge);
-  
+
   // Reco MET
   tree->Branch("RecoMet_pt", &RecoMet_pt, "RecoMet_pt/F");
   tree->Branch("RecoMet_phi", &RecoMet_phi, "RecoMet_phi/F");
-  
+
 }
 
 
@@ -386,6 +396,10 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   iEvent.getByToken(recoPhotonToken_, recoPhotons);
   iEvent.getByToken(recoMuonToken_, recoMuons);
   iEvent.getByToken(recoMetToken_, recoMet);
+
+  event = iEvent.id().event();
+  run = iEvent.id().run();
+  lumi = iEvent.luminosityBlock();
 
   GenPart_pt.clear();
   GenPart_eta.clear();
@@ -431,7 +445,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   FatJet_e.clear();
   FatJet_m.clear();
   FatJet_partonFlav.clear();
-  
+
   EGamma_pt.clear();
   EGamma_eta.clear();
   EGamma_phi.clear();
@@ -542,7 +556,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
       nGenJet++;
     }
   }
-  
+
   //Gen fat jets
   nGenFatJet = 0;
   if(genFatJets.isValid()){
@@ -600,7 +614,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
         partondRs.push_back(dR);
       }
     }
-    //Assign flavour based on hierarchy 
+    //Assign flavour based on hierarchy
     if(partonFlavs.size() > 0){
       if(std::find(partonFlavs.begin(), partonFlavs.end(), 5) != partonFlavs.end()){
         partonFlav = 5;
@@ -699,25 +713,25 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
       case l1t::EtSum::EtSumType::kTotalEt:
         totalEt = etSum->pt();
         break;
-      
+
       case l1t::EtSum::EtSumType::kTotalHt:
         totalHt = etSum->pt();
         break;
-      
+
       case l1t::EtSum::EtSumType::kMissingEt:
         missingEt = etSum->pt();
         missingEtPhi = etSum->phi();
         break;
-      
+
       case l1t::EtSum::EtSumType::kMissingHt:
         missingHt = etSum->pt();
         missingHtPhi = etSum->phi();
         break;
-      
+
       case l1t::EtSum::EtSumType::kTowerCount:
         towerCount = etSum->hwPt();
         break;
-      
+
       default:
         continue;
     }
@@ -748,7 +762,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
           partondRs.push_back(dR);
         }
       }
-      //Assign flavour based on hierarchy 
+      //Assign flavour based on hierarchy
       if(partonFlavs.size() > 0){
         if(std::find(partonFlavs.begin(), partonFlavs.end(), 5) != partonFlavs.end()){
           partonFlav = 5;
@@ -787,7 +801,7 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
       if(pNetbDisc > 0. || pNetcDisc > 0.){
         std::cout << "Reco jet: " << nRecoJet << "\n";
         std::cout << "Genmatched parton flavour " << partonFlav << "\n";
-        std::cout << "Particle Net b vs udscg " << pNetbDisc << "\n"; 
+        std::cout << "Particle Net b vs udscg " << pNetbDisc << "\n";
         std::cout << "Particle Net c vs udsg " << pNetcDisc << "\n";
         std::cout << "\n";
       }
