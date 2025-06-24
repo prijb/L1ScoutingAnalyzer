@@ -508,7 +508,9 @@ void MCNtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup&){
   fastjet::JetDefinition jet_def(fastjet::antikt_algorithm, FatJetR);
 
   //Gen event pT hat
-  genPtHat = (genEventInfo->hasBinningValues() ? genEventInfo->binningValues()[0] : 0.0);
+  //genPtHat = (genEventInfo->hasBinningValues() ? genEventInfo->binningValues()[0] : 0.0);
+  // qScale >= pThat
+  genPtHat = genEventInfo->qScale();
 
   // Fill PileupPtHats
   nPileup = 0;
